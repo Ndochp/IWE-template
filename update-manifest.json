@@ -1161,7 +1161,7 @@
     },
     {
       "path": "generate-manifest.sh",
-      "sha256": "6fc2199a7662e4934746c06ad6b63ec23b76289ec426c273efa0ce5cb19689c3"
+      "sha256": "0a10dd98be14ee69901df9c38232985655ed648b549ade17c174c014de8f8811"
     },
     {
       "path": "guide-kit/.gitignore",
@@ -2340,6 +2340,10 @@
       "sha256": "80f856ba356a49b4d2d0635235b9edb8bd725178a687c0fce23af2e8b44184e8"
     },
     {
+      "path": "scripts/isolate-push.sh",
+      "sha256": "c8d31c3595cafd854bdbc127c92f65e903db359c563c2330c281340f65f4af9a"
+    },
+    {
       "path": "scripts/iwe-agent-dispatcher.py",
       "sha256": "17f74be39152b10e7eaacf7d49acf297508cf213f6ce31fb73450e6b0994613e"
     },
@@ -2472,6 +2476,10 @@
       "sha256": "65b3a09582fb2bcb61b2c0a8ac7914b21ed5479ed8805ed438978264cb390682"
     },
     {
+      "path": "scripts/lib/session-guard-isolate-lib.sh",
+      "sha256": "82e1e60a8080976c74de0758d8635c783731e39ab4695bb20f7f794b989dbfd7"
+    },
+    {
       "path": "scripts/lib/telegram.sh",
       "sha256": "4c5c0546b87a7bbe6dbff6af7ca011c561a1c2f5a2e5db4c4fedcd183bc9de3e"
     },
@@ -2577,7 +2585,7 @@
     },
     {
       "path": "scripts/session-guard.sh",
-      "sha256": "a6e62eb6f9fba0cb872d99232ed6d3841ccb80872f90bb75d79ed7007420349e"
+      "sha256": "e3c2353824e55c523a69e66903ea9d4644755aef61b1ff67d6a721bc2514cffd"
     },
     {
       "path": "scripts/settings-promote.sh",
@@ -2984,6 +2992,10 @@
       "sha256": "80f856ba356a49b4d2d0635235b9edb8bd725178a687c0fce23af2e8b44184e8"
     },
     {
+      "path": "seed/strategy/scripts/isolate-push.sh",
+      "sha256": "c8d31c3595cafd854bdbc127c92f65e903db359c563c2330c281340f65f4af9a"
+    },
+    {
       "path": "seed/strategy/scripts/iwe_checklist_memory.py",
       "sha256": "daa7fe5442175b7eb2fd08798353bb3c58c71e7f84f05881a35dc3183f89160a"
     },
@@ -3120,6 +3132,8 @@
     "scripts/tests/iwe-paths-scripts-resolution-smoke.sh",
     "scripts/tests/lib/extract-update-download-batch.sh",
     "scripts/tests/session-guard-audit-validate-orz-batch-smoke.sh",
+    "scripts/tests/session-guard-isolate-minimal-smoke.sh",
+    "scripts/tests/session-guard-isolate-t1-t20-smoke.sh",
     "scripts/tests/test-captures-write-lock-840.sh",
     "scripts/tests/test-update-extractor-feeders.sh",
     "scripts/tests/test_adopt_governance.sh",
