@@ -42,6 +42,9 @@ done
 DATE="${DATE_ARG:-$(date +%Y-%m-%d)}"
 IWE="${IWE_ROOT:-$HOME/IWE}"
 CONFIG="${CONFIG_ARG:-$IWE/.iwe-runtime/day-rhythm-config.yaml}"
+# LOCAL-PATCH (Windows/Git Bash): native Windows python не открывает POSIX-пути (/d/...)
+# — для python-вызовов конвертируем в mixed-путь (D:/...); POSIX-путь остаётся для bash/echo.
+CONFIG_PY="$(command -v cygpath >/dev/null 2>&1 && cygpath -m "$CONFIG" || echo "$CONFIG")"
 SECRETS_FILE="${HOME}/.secrets/google-calendar"
 
 # --- Выбираем python3 с PyYAML (общий резолвер, WP-529 F6 / #453 #463) ---
@@ -97,7 +100,7 @@ fi
 CONFIG_READ=$($PYTHON3 -c "
 import yaml, sys
 try:
-    with open('$CONFIG') as f: d = yaml.safe_load(f) or {}
+    with open('$CONFIG_PY') as f: d = yaml.safe_load(f) or {}
     if 'calendar_ids' in d:
         ids = d.get('calendar_ids')
     elif 'calendar_ids' in d.get('day_open', {}):
