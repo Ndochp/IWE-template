@@ -735,13 +735,18 @@ render_iwe_status() {
     echo "| LaunchAgents | ⚪ | launchctl недоступен |"
   fi
 
-  # template-sync (FMT last commit)
-  if [ -d "$IWE/FMT-exocortex-template/.git" ]; then
+  # template-sync (локальная копия шаблона; IWE-template инсталляция, legacy FMT-путь — fallback)
+  local tpl_dir="${IWE_TEMPLATE:-$IWE/IWE-template}"
+  if [ -d "$tpl_dir/.git" ]; then
+    local fmt_last
+    fmt_last=$(git -C "$tpl_dir" log -1 --format="%cr" 2>/dev/null || echo "?")
+    echo "| template-sync | 🟢 | ${tpl_dir##*/} last commit: $fmt_last |"
+  elif [ -d "$IWE/FMT-exocortex-template/.git" ]; then
     local fmt_last
     fmt_last=$(git -C "$IWE/FMT-exocortex-template" log -1 --format="%cr" 2>/dev/null || echo "?")
     echo "| template-sync | 🟢 | FMT last commit: $fmt_last |"
   else
-    echo "| template-sync | 🔴 | FMT не найден |"
+    echo "| template-sync | 🔴 | шаблон не найден ($tpl_dir) |"
   fi
 
   # Scout findings
