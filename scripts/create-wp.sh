@@ -271,17 +271,24 @@ if [[ -f "$HYP_LOG" ]]; then
 fi
 
 # --- Decompose-reminder derivation (structural-hole fix) ---
-# Budget formats seen in the wild: "5h", "2h", "3-4h" (range). For a range we
-# want the upper bound — the more conservative read when deciding whether the
-# WP is big enough to need a staged plan. Plain `sed 's/[^0-9]//g'` (used
-# elsewhere in this script for a different, looser purpose) would mangle
-# "3-4h" into "34"; this instead takes the max of all digit groups found.
-budget_upper_bound_hours() {
-  local budget="$1" n max=0
-  for n in $(grep -oE '[0-9]+' <<<"$budget"); do
-    [[ "$n" -gt "$max" ]] && max="$n"
-  done
-  printf '%s\n' "$max"
+# Budget formats seen in the wild: "5h", "2h", "3-4h" (range), "0.5h"
+# (fractional). For a range we want the upper bound — the more conservative
+# read when deciding whether the WP is big enough to need a staged plan.
+# Numbers are matched with their decimal point: the old digit-group max read
+# "0.5h" as max(0, 5) = 5 hours and the old `sed 's/[^0-9]//g'` squashed it
+# into "05" (issue #1088). Returns TENTHS of an hour so callers stay in
+# integer arithmetic: "0.5h" → 5, "5h" → 50, "3-4h" → 40.
+budget_upper_bound_tenths() {
+  awk -v b="$1" 'BEGIN {
+    max = 0
+    s = b
+    while (match(s, /[0-9]+(\.[0-9]+)?/)) {
+      v = substr(s, RSTART, RLENGTH) + 0
+      if (v > max) max = v
+      s = substr(s, RSTART + RLENGTH)
+    }
+    printf "%.0f\n", max * 10
+  }'
 }
 
 # Шаг 4.5 protocol-open.md (/decompose): open-loop/problem-framing + budget
@@ -291,7 +298,7 @@ budget_upper_bound_hours() {
 # nudge survives even when the console output scrolls away.
 DECOMPOSE_CHECKLIST_ITEM=""
 if [[ "$VERIFICATION_CLASS" == "open-loop" || "$VERIFICATION_CLASS" == "problem-framing" ]]; then
-  if [[ "$(budget_upper_bound_hours "$BUDGET")" -ge 3 ]]; then
+  if [[ "$(budget_upper_bound_tenths "$BUDGET")" -ge 30 ]]; then
     DECOMPOSE_CHECKLIST_ITEM="- [ ] Запустить /decompose — план по этапам (класс проверки требует)
 "
   fi
@@ -1158,8 +1165,8 @@ fi
 # --- Шаг 4: Strategy.md (только если --result задан и бюджет ≥3h) ---
 echo "4/5 Strategy.md..."
 
-BUDGET_H=$(echo "$BUDGET" | sed 's/[^0-9]//g')
-if [[ -n "$RESULT" && "${BUDGET_H:-0}" -ge 3 ]]; then
+BUDGET_TENTHS=$(budget_upper_bound_tenths "$BUDGET")
+if [[ -n "$RESULT" && "${BUDGET_TENTHS:-0}" -ge 30 ]]; then
   STRATEGY_FILE="$STRATEGY/docs/Strategy.md"
   python3 - "$STRATEGY_FILE" "$WP_ID" "$REPO" "$RESULT" <<'PYEOF'
 import re
@@ -1207,7 +1214,7 @@ with open(strategy_path, "w", encoding="utf-8") as f:
     f.write(content)
 print("   ✅ Strategy.md: WP-{} → {} добавлен".format(wp_id, result))
 PYEOF
-elif [[ "${BUDGET_H:-0}" -ge 3 ]]; then
+elif [[ "${BUDGET_TENTHS:-0}" -ge 30 ]]; then
   echo "   ℹ️  РП ≥3h, но --result не задан — добавить маппинг в Strategy.md вручную"
 else
   echo "   ℹ️  РП <3h — маппинг в Strategy.md не требуется"
