@@ -27,6 +27,7 @@ run_publish() {
         set -e
         WORKSPACE="$1"; LOG_FILE="$2"; SHA="$3"
         '"$(sed -n '/^log() {/,/^}/p' "$SCRIPT")"'
+        '"$(sed -n '/^pick_publisher() {/,/^}/p' "$SCRIPT")"'
         '"$(sed -n '/^publish_commit_or_explain() {/,/^}/p' "$SCRIPT")"'
         rc=0
         publish_commit_or_explain "strategist: test" "$SHA" "OK-MSG" "FAIL-MSG" >/dev/null || rc=$?
@@ -89,8 +90,11 @@ fi
 
 # --- 4. Both publish call sites go through the function, and a failed publish
 # cannot end the run under `set -e`. No direct ds-publish.sh call is left.
+# WP-530 Ф72: a third site, in isolated_finish, publishes from the throwaway copy; it is an
+# `if publish_commit_or_explain ...; then` condition, so its failure is handled, not fatal.
 calls=$(grep -c 'publish_commit_or_explain "' "$SCRIPT")
-if [ "$calls" = "2" ]; then pass "both publish sites (main push, notes cleanup) use publish_commit_or_explain"; else fail_test "expected 2 call sites, found $calls"; fi
+if [ "$calls" = "3" ]; then pass "all publish sites (main push, notes cleanup, isolated copy) use publish_commit_or_explain"; else fail_test "expected 3 call sites, found $calls"; fi
+if [ "$(grep -c 'if publish_commit_or_explain "' "$SCRIPT")" = "1" ]; then pass "the isolated site is a checked condition (set -e safe)"; else fail_test "the isolated publish site is not an 'if' condition"; fi
 # Join backslash-continued lines first: the guard sits on the last physical line
 # of a multi-line call, so a plain per-line grep breaks on any harmless re-wrap.
 guarded=$(awk '{ if (sub(/\\$/, "")) printf "%s", $0; else print $0 }' "$SCRIPT" \
