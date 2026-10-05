@@ -47,7 +47,19 @@ TASK="${3:-}"
 FILES_CSV="${4:-}"
 [ -z "$SESSION_ID" ] && SESSION_ID="default"
 
-SECRETS_DIR="${IWE_SECRETS_DIR:-$HOME/IWE/.secrets}"
+# Каталог секретов: эталонная раскладка — workspace = $HOME/IWE, секреты в $HOME/IWE/.secrets.
+# Windows-установки могут держать workspace вне $HOME/IWE (другой диск/симлинк), а секреты —
+# в $HOME/.secrets (как календарные). Порядок: IWE_SECRETS_DIR → первый существующий
+# из кандидатов → эталонный default (дальнейший fail покажет проверенные пути).
+resolve_secrets_dir() {
+  if [ -n "${IWE_SECRETS_DIR:-}" ]; then echo "$IWE_SECRETS_DIR"; return; fi
+  local d
+  for d in "$HOME/IWE/.secrets" "$HOME/.secrets"; do
+    [ -d "$d" ] && { echo "$d"; return; }
+  done
+  echo "$HOME/IWE/.secrets"
+}
+SECRETS_DIR="$(resolve_secrets_dir)"
 NEON_ENV="$SECRETS_DIR/neon-urls.env"
 UID_FILE="$SECRETS_DIR/pilot-user-id"
 
@@ -64,7 +76,7 @@ fi
 # user_id пилота (Ory sub) — из секрета или env. tr -d: устойчивость к случайному \n в файле.
 USER_ID="${IWE_PILOT_USER_ID:-}"
 [ -z "$USER_ID" ] && [ -f "$UID_FILE" ] && USER_ID="$(tr -d '[:space:]' < "$UID_FILE")"
-[ -z "$USER_ID" ] && fail "pilot user_id not found ($UID_FILE)"
+[ -z "$USER_ID" ] && fail "pilot user_id not found ($UID_FILE; env IWE_PILOT_USER_ID пуст — на установке без Neon-реестра статусов это штатно)"
 
 # DSN базы indicators
 INDICATORS_URL="${INDICATORS_URL:-}"
