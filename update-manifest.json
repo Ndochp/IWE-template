@@ -349,7 +349,7 @@
     },
     {
       "path": ".claude/scripts/load-extensions.sh",
-      "sha256": "1d3bd569180e65544e4aae650e3a4ec8e60aaec07460e8a4819498d39b86125d"
+      "sha256": "04f548373d6f4bdf5eae4e85eb7b2d8e983fbe7ce64da299ec21ce5f63157c32"
     },
     {
       "path": ".claude/scripts/memory-drift-scan.py",
@@ -2061,7 +2061,7 @@
     },
     {
       "path": "scripts/agent-status-report.sh",
-      "sha256": "ce660e06bbdf733c6314f42104ad834554e3711e5e8ad044deb68aaa4fc067f5"
+      "sha256": "7d926f81b4145898934ca3be7c89bb2299df49f7f77e6a04fbfde37015de3615"
     },
     {
       "path": "scripts/agent_fault_remind.py",
@@ -2229,7 +2229,7 @@
     },
     {
       "path": "scripts/create-wp.sh",
-      "sha256": "e018133ad37c2c91de16cd56c0b6e9d5c5382bbe479fc03a7e31c76b888b830e"
+      "sha256": "6cd5ca7d1da3e5e8bf561e87ce8cebf245328e065db11f2c25590635ffc2ac6e"
     },
     {
       "path": "scripts/day-close-lock.sh",
@@ -2289,7 +2289,7 @@
     },
     {
       "path": "scripts/day-open-scaffold.sh",
-      "sha256": "698499b0fecd1b9ddafa529caf0a34d646f6aad21ffce569afb6199a0773d7b5"
+      "sha256": "489e6b64c84164d4567e90300c2fe3df800ca47e9d13c2d6eb1931e634918131"
     },
     {
       "path": "scripts/day-open-smoke-extended.sh",
@@ -2629,7 +2629,7 @@
     },
     {
       "path": "scripts/server-calendar.sh",
-      "sha256": "7e2c56557c61a308af111fe5a0a8036ceb388b1235ca9b1a1868eef58b8dd1a8"
+      "sha256": "f92e70e3082ca99d193c7db8e306cc2d695994250b2e8cdec3cec9005b6d2902"
     },
     {
       "path": "scripts/server-news.sh",
