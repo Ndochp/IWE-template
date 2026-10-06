@@ -218,7 +218,7 @@ finalized_at: ISO8601
 
 ### Артефакты-реализация
 
-- Скрипт-детектор: `{{IWE_GOVERNANCE_REPO}}/scripts/check-open-sessions.sh`
+- Скрипт-детектор: `<шаблон>/scripts/check-open-sessions.sh` — поставляется в шаблоне, governance-репо сканирует через `IWE_DS_MY_STRATEGY` из `iwe-env-bootstrap.sh`; в governance-репо не доставляется и оттуда не запускается
 - Day Open hook: `~/IWE/extensions/day-open.after.md § 7c`
 - Day Close hook: `~/IWE/extensions/day-close.checks.md § Незакрытые external-сессии`
 - Bot Telegram-ответ: `handlers/external_session.py` (формирование report-URL)
