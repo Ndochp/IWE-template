@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# LOCAL-PATCH (fork Ndochp/IWE-template): day_boundary 04:30 — issue #924;
+# одобрено пилотом 25.09, восстановлено в форке 07.10 (деплой v0.41.7 затёр
+# несохранённую пользовательскую копию). Снимается, когда апстрим закроет #924.
 # routing: helper  skill=day-open  called-by=haiku  deterministic=true
 # see DP.SC.159, DP.ROLE.059
 # day-open-scaffold.sh — детерминированная генерация скелета DayPlan
@@ -88,6 +91,27 @@ else
   YDAY=$(date -d "$DATE - 1 day" "+%Y-%m-%d" 2>/dev/null)
   YDAY_NUM=$(date -d "$DATE - 1 day" "+%-d" 2>/dev/null)
   YDAY_MNUM=$(date -d "$DATE - 1 day" "+%-m" 2>/dev/null)
+fi
+
+# LOCAL-PATCH (issue #924): смена суток в day_boundary (04:30), не в 00:00.
+# «Вчера» — по бизнес-суткам: если сейчас раньше границы и DATE = сегодня,
+# вчерашний день ещё не закрыт, бизнес-вчера = календарное позавчера.
+# Интервал сбора коммитов «Итогов вчера» тоже сдвигается на границу (ниже).
+if [ -f "$CONFIG" ]; then
+  BOUNDARY=$(grep -m1 '^day_boundary:' "$CONFIG" 2>/dev/null | sed 's/[^0-9:]//g')
+fi
+BOUNDARY="${BOUNDARY:-04:30}"
+case "$BOUNDARY" in ??":"??) ;; *) BOUNDARY="04:30" ;; esac
+if [[ "$(date +%H:%M)" < "$BOUNDARY" && "$DATE" == "$(date +%Y-%m-%d)" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    YDAY=$(date -j -v-2d -f "%Y-%m-%d" "$DATE" "+%Y-%m-%d" 2>/dev/null || echo "$YDAY")
+    YDAY_NUM=$(date -j -v-2d -f "%Y-%m-%d" "$DATE" "+%-d" 2>/dev/null || echo "$YDAY_NUM")
+    YDAY_MNUM=$(date -j -v-2d -f "%Y-%m-%d" "$DATE" "+%-m" 2>/dev/null || echo "$YDAY_MNUM")
+  else
+    YDAY=$(date -d "$DATE - 2 days" "+%Y-%m-%d" 2>/dev/null || echo "$YDAY")
+    YDAY_NUM=$(date -d "$DATE - 2 days" "+%-d" 2>/dev/null || echo "$YDAY_NUM")
+    YDAY_MNUM=$(date -d "$DATE - 2 days" "+%-m" 2>/dev/null || echo "$YDAY_MNUM")
+  fi
 fi
 
 DOW_NAMES=("" "Понедельник" "Вторник" "Среда" "Четверг" "Пятница" "Суббота" "Воскресенье")
@@ -1392,7 +1416,7 @@ render_yesterday() {
   local total=0 repos=0
   while IFS= read -r repo; do
     local n
-    n=$(git -C "$repo" log --since="$YDAY 00:00" --until="$YDAY 23:59" --oneline 2>/dev/null | wc -l | tr -d ' ')
+    n=$(git -C "$repo" log --since="$YDAY $BOUNDARY" --until="$DATE $BOUNDARY" --oneline 2>/dev/null | wc -l | tr -d ' ')
     if [ "$n" -gt 0 ]; then
       total=$((total + n))
       repos=$((repos + 1))
@@ -1407,7 +1431,7 @@ render_yesterday() {
   # regardless of the grep below (bug 2026-07-02) — the else-branch then reports
   # "нет данных" honestly instead of letting the LLM invent a count.
   local dc_committed
-  dc_committed=$(cd "$IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}" && git log --since="$YDAY 00:00:00" -i \
+  dc_committed=$(cd "$IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}" && git log --since="$YDAY $BOUNDARY:00" -i \
     --grep="day-close.*$YDAY" --format=%H 2>/dev/null | head -1)
   # issue #929: same criterion as the pipeline race guard and extract_day_close_carry_over —
   # yesterday's archived DayPlan with the close sections. The commit-message wording is
