@@ -7,6 +7,18 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MANIFEST="$SCRIPT_DIR/update-manifest.json"
 
+# LOCAL-PATCH (fork Ndochp/IWE-template, 07.10): Windows-python не понимает
+# POSIX-пути вида /d/... (UnicodeEncodeError/FileNotFoundError при генерации
+# на Windows-инсталляции). Для python-фрагментов отдаём пути через cygpath -m;
+# на Linux/macOS cygpath отсутствует — переменные равны исходным, no-op.
+if command -v cygpath >/dev/null 2>&1; then
+    P_MANIFEST=$(cygpath -m "$MANIFEST")
+    P_SCRIPT_DIR=$(cygpath -m "$SCRIPT_DIR")
+else
+    P_MANIFEST="$MANIFEST"
+    P_SCRIPT_DIR="$SCRIPT_DIR"
+fi
+
 # Версия из CHANGELOG.md (первый ## [X.Y.Z])
 VERSION=$(grep -m1 '^\#\# \[[0-9]' "$SCRIPT_DIR/CHANGELOG.md" | sed 's/.*\[\(.*\)\].*/\1/')
 
@@ -360,13 +372,18 @@ DEPRECATED_JSON="[]"
 if [ -f "$MANIFEST" ]; then
     DEPRECATED_JSON=$(python3 -c "
 import json
-with open('$MANIFEST') as f:
+with open('$P_MANIFEST') as f:
     data = json.load(f)
 print(json.dumps(data.get('deprecated_files', []), ensure_ascii=False))
 ")
 fi
 
 TMPDIR=$(mktemp -d)
+if command -v cygpath >/dev/null 2>&1; then
+    P_TMPDIR=$(cygpath -m "$TMPDIR")
+else
+    P_TMPDIR="$TMPDIR"
+fi
 # Через printf: построчная запись без bash-array-interpolation внутри строки
 printf '%s\n' "${FILES[@]}" > "$TMPDIR/files.txt"
 printf '%s\n' "${EXCLUDED_PATHS[@]}" > "$TMPDIR/excluded.txt"
@@ -377,9 +394,9 @@ import hashlib
 import json
 from pathlib import Path
 
-files = [line.strip() for line in open('$TMPDIR/files.txt') if line.strip()]
-excluded = [line.strip() for line in open('$TMPDIR/excluded.txt') if line.strip()]
-root = Path('$SCRIPT_DIR')
+files = [line.strip() for line in open('$P_TMPDIR/files.txt') if line.strip()]
+excluded = [line.strip() for line in open('$P_TMPDIR/excluded.txt') if line.strip()]
+root = Path('$P_SCRIPT_DIR')
 
 def manifest_entry(path):
     digest = hashlib.sha256((root / path).read_bytes()).hexdigest()
@@ -410,7 +427,7 @@ delivered_now = {e['path'] for e in data['files']}
 # при сбое git tracked_now молча становился пустым, и фильтр «deprecated ∩
 # дерево» деградировал fail-open. Сбой git = отказ генерации (fail-closed).
 _ls = subprocess.run(
-    ['git', 'ls-files'], capture_output=True, text=True, cwd='$SCRIPT_DIR'
+    ['git', 'ls-files'], capture_output=True, text=True, cwd='$P_SCRIPT_DIR'
 )
 if _ls.returncode != 0:
     sys.exit('generate-manifest: git ls-files failed: ' + _ls.stderr.strip())
@@ -438,7 +455,7 @@ if not data['excluded_paths']:
 if not data['deprecated_files']:
     del data['deprecated_files']
 
-with open('$MANIFEST', 'w', encoding='utf-8') as f:
+with open('$P_MANIFEST', 'w', encoding='utf-8') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
     f.write('\n')
 "
