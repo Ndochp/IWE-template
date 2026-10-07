@@ -1117,11 +1117,11 @@
     },
     {
       "path": "extensions/day-close.checks.session-orphans.md",
-      "sha256": "dd1ff9170b7471a29742d747cbdfeaa5752b5d6c4c53a0794364289224782f51"
+      "sha256": "d3f2aa3c74d062961e049c11db71e9df52123e6aeb6ff7ab267ff2e5f8c07f52"
     },
     {
       "path": "extensions/day-open.after.session-orphans.md",
-      "sha256": "36df5255c46647e969b7aa69137bc996790b47619f7a808640e3dd584346b897"
+      "sha256": "e1711f74b542c935e05465660a8ae9326841d015436efa8913d5493f7ed7981a"
     },
     {
       "path": "extensions/day-open.checks.md",
@@ -1657,7 +1657,7 @@
     },
     {
       "path": "pack-templates/digital-platform/08-service-clauses/DP.SC.NNN-external-session-request.md",
-      "sha256": "8076866fe2eddc7b4276c3a147d93c02c8792b24f48bbe05a4617248cc85d0f7"
+      "sha256": "b9045744cd79de21151a2d989ad6fc304bd44e56026bb20a177afb458f9fda92"
     },
     {
       "path": "requirements.txt",
