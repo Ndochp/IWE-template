@@ -52,6 +52,11 @@ fi
 WORKSPACE_DIR="${WORKSPACE_DIR/#\~/$HOME}"
 GOVERNANCE_REPO="${GOVERNANCE_REPO:-DS-strategy}"
 
+# Имя каталога шаблона берём от фактического расположения этого скрипта
+# (setup/ внутри шаблона), а не захардкоженное: форки могут называться иначе
+# (на этой установке — IWE-template). Для апстрима результат совпадает.
+TEMPLATE_DIR_NAME="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+
 # WP-7 F161 (peer session 2026-09-21-04-wp537-wp7-fmt-decisions-followup,
 # Claude+Codex): a live scripts/ checkout at workspace root is canonical
 # and ahead of the template's own copy (which is deliberately trimmed,
@@ -126,7 +131,7 @@ resolve_paths_literal() {
         '$IWE_WORKSPACE' | '$IWE_WORKSPACE'/*)
             value="$WORKSPACE_DIR${value#\$IWE_WORKSPACE}" ;;
         '$IWE_TEMPLATE' | '$IWE_TEMPLATE'/*)
-            value="$WORKSPACE_DIR/FMT-exocortex-template${value#\$IWE_TEMPLATE}" ;;
+            value="$WORKSPACE_DIR/$TEMPLATE_DIR_NAME${value#\$IWE_TEMPLATE}" ;;
     esac
     printf '%s' "$value"
 }
@@ -142,7 +147,7 @@ cat > "$IWE_ENV_FILE" <<IWEENV_EOF
 
 export IWE_WORKSPACE="$WORKSPACE_DIR"
 export IWE_ROOT="\$IWE_WORKSPACE"
-export IWE_TEMPLATE="\$IWE_WORKSPACE/FMT-exocortex-template"
+export IWE_TEMPLATE="\$IWE_WORKSPACE/$TEMPLATE_DIR_NAME"
 export IWE_SCRIPTS="$IWE_SCRIPTS_TARGET"
 export IWE_ROLES="\$IWE_TEMPLATE/roles"
 export IWE_RUNTIME="\$IWE_WORKSPACE/.iwe-runtime"
