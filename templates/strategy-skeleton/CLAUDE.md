@@ -25,7 +25,7 @@
 
 **Source-of-truth:** `docs/WP-REGISTRY.md` (реестр) + `inbox/WP-*.md` (контексты со `status: in_progress|active`).
 
-**Агрегация:** `bash ~/IWE/scripts/active-wp-sweep.sh` обходит `inbox/WP-*.md`, кросс-проверяет git-активность 7 дней, выдаёт markdown-таблицу активных РП. Используется в session-prep и `memory-active-wp-update.sh`.
+**Агрегация:** `bash $IWE_WORKSPACE/scripts/active-wp-sweep.sh` обходит `inbox/WP-*.md`, кросс-проверяет git-активность 7 дней, выдаёт markdown-таблицу активных РП. Используется в session-prep и `memory-active-wp-update.sh`.
 
 **Антипаттерн:** WORKPLAN.md hub-and-spoke отменён WP-283 Ф-H (май 2026): дубликат WP-REGISTRY → drift.
 
@@ -34,16 +34,16 @@
 При сборе коммитов проверять все репозитории:
 
 ```bash
-for repo in $(ls ~/IWE/); do
-  if [ -d ~/IWE/$repo/.git ]; then
-    echo "=== $repo ===" && cd ~/IWE/$repo && git log --oneline --since="1 week ago" 2>/dev/null
+for repo in $(ls $IWE_WORKSPACE/); do
+  if [ -d $IWE_WORKSPACE/$repo/.git ]; then
+    echo "=== $repo ===" && cd $IWE_WORKSPACE/$repo && git log --oneline --since="1 week ago" 2>/dev/null
   fi
 done
 ```
 
 ## Work-Product Gate (правило РП-шлюза)
 
-> **Полное описание:** `~/IWE/CLAUDE.md` § 2. Ниже — краткая сводка для Стратега.
+> **Полное описание:** `$IWE_WORKSPACE/CLAUDE.md` § 2. Ниже — краткая сводка для Стратега.
 
 **БЛОКИРУЮЩЕЕ ПРАВИЛО.** Выполняется ДО ЛЮБОГО действия по задаче (до чтения кода, до исследования).
 
@@ -91,8 +91,8 @@ done
 
 ## Связи
 
-- **Личное знание (миссия, ценности):** `~/IWE/PACK-personal/`
-- **Описание роли Стратега:** `~/IWE/PACK-digital-platform/.../DP.ROLE.012-strategist/`
+- **Личное знание (миссия, ценности):** `$IWE_WORKSPACE/PACK-personal/`
+- **Описание роли Стратега:** `$IWE_WORKSPACE/PACK-digital-platform/.../DP.ROLE.012-strategist/`
 - **Командное планирование:** `inbox/WP-*.md` + WP-REGISTRY.md в своём ecosystem-development репозитории, если он есть
 
 ---

@@ -18,7 +18,7 @@
 
 ## Шаблон `.handoff.md`
 
-Размещается в корне IWE (`~/IWE/.handoff.md`). Жизнь ≤4 часа — устаревшие handoff опасны.
+Размещается в корне IWE (`$IWE_WORKSPACE/.handoff.md`). Жизнь ≤4 часа — устаревшие handoff опасны.
 
 ```markdown
 # Handoff: [WP-XXX]

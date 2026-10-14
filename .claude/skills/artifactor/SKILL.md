@@ -93,7 +93,7 @@ Classifies raw pilot request → structured JSON {task_type, class, artifact, bu
 Запустить скрипт (возвращает JSON или сигнал):
 
 ```bash
-S="${IWE_SCRIPTS:-$HOME/IWE/scripts}"
+S="${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}"
 PY3="$(bash "$S/lib/find-python3.sh")" && "$PY3" "$S/artifactor.py" "$ARGUMENTS"
 ```
 

@@ -109,7 +109,7 @@ WP-NNN: pending-фазы (M):
 - Просмотреть `inbox/fleeting-notes.md` за неделю → маршрутизировать невыключенные.
 - Уроки сессий → MEMORY.md + thematic `lessons_*.md` (если есть).
 - Drift-scan недели: что в MEMORY.md устарело за 7 дней.
-- **Проверка полноты переноса перед архивацией (WP-5, 2026-07-10):** `bash {{IWE_SCRIPTS}}/check-wp-transfer-completeness.sh --all "${IWE_ROOT:-$HOME/IWE}"` по `inbox/WP-N/` — выводит `results_not_captured`-флаги (проставленные при закрытии без заполненного `results_in`) и файлы в подпапках без учёта в основном контекст-файле. Для каждого warning — пилот решает: (a) действительно нужен перенос знания, найти куда; (b) файл технический/устарел, можно оставить; (c) `results_in` заполнить постфактум. Не блокирует Close.
+- **Проверка полноты переноса перед архивацией (WP-5, 2026-07-10):** `bash {{IWE_SCRIPTS}}/check-wp-transfer-completeness.sh --all "${IWE_ROOT:-$IWE_WORKSPACE}"` по `inbox/WP-N/` — выводит `results_not_captured`-флаги (проставленные при закрытии без заполненного `results_in`) и файлы в подпапках без учёта в основном контекст-файле. Для каждого warning — пилот решает: (a) действительно нужен перенос знания, найти куда; (b) файл технический/устарел, можно оставить; (c) `results_in` заполнить постфактум. Не блокирует Close.
 
 ### 6a. Сверка журнала гипотез (LPF, WP-496)
 
@@ -127,7 +127,7 @@ WP-NNN: pending-фазы (M):
 > **Зачем:** протокол Close (§ 5c) — реактивный: предлагает архивацию только когда агент случайно касается конкретной карточки. Прецедент WP-7 — механизм архива существовал, но использование прекратилось на 2 месяца, пока карточка не была замечена вручную. Этот шаг закрывает разрыв: сканирует весь `inbox/` безусловно каждую неделю.
 
 ```bash
-S="${IWE_SCRIPTS:-$HOME/IWE/scripts}"
+S="${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}"
 PY3="$(bash "$S/lib/find-python3.sh")" && "$PY3" "$S/archive-cadence-sweep.py" --format md
 ```
 
@@ -181,7 +181,7 @@ bash ${IWE_SCRIPTS}/memory-bleed.sh
 > Проверка здоровья статической нагрузки контекста. Флаги — информативно, пользователь решает.
 
 ```bash
-IWE_ROOT="${IWE_ROOT:-$HOME/IWE}"
+IWE_ROOT="${IWE_ROOT:-$IWE_WORKSPACE}"
 MEMORY_DIR="$IWE_ROOT/memory"
 echo "=== distinctions.md ===" && wc -l {{WORKSPACE_DIR}}/.claude/rules/distinctions.md
 echo "=== MEMORY.md ===" && wc -l "$MEMORY_DIR/MEMORY.md"
@@ -297,7 +297,7 @@ git push
 - [ ] Governance-репо закоммичено
 - [ ] Peer-сессии недели: WP Gate проверен (только сессии с 2026-06-09):
   ```bash
-  find ~/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/sessions -type f -name "peer-prompt.md" \
+  find $IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/sessions -type f -name "peer-prompt.md" \
     | awk -F/ '{d=$(NF-1); match(d,/^[0-9]{4}-[0-9]{2}-[0-9]{2}/); print substr(d,RSTART,RLENGTH) " " $0}' \
     | awk '$1 >= "2026-06-09" {print $2}' \
     | xargs -I{} sh -c 'grep -q "Открытие (WP Gate)" "{}" || echo "WP-GATE-MISS: {}"'

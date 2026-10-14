@@ -16,7 +16,7 @@ routing:
 
 Перед выполнением проверить:
 ```bash
-IWE_ROOT="${IWE_ROOT:-$HOME/IWE}"
+IWE_ROOT="${IWE_ROOT:-$IWE_WORKSPACE}"
 if [ ! -d "$IWE_ROOT/DS-personal-guide" ]; then
   echo "⚠️ DS-personal-guide не найден в $IWE_ROOT. Скилл требует DS-personal-guide репозиторий."
   exit 0

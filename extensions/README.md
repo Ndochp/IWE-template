@@ -162,7 +162,7 @@ Loader (`.claude/scripts/load-extensions.sh day-close after`) возвращае
 Расширения IWE — обычные Markdown-файлы. Установка:
 
 ```bash
-cp ~/Downloads/day-close.after.health.md ~/IWE/extensions/
+cp ~/Downloads/day-close.after.health.md $IWE_WORKSPACE/extensions/
 ```
 
 ### Формат пакета расширений (bundle)
@@ -178,8 +178,8 @@ my-extension-pack/
 Установка bundle:
 
 ```bash
-cp my-extension-pack/extensions/* ~/IWE/extensions/
-# Просмотреть params-defaults.yaml и добавить нужные параметры в ~/IWE/params.yaml вручную
+cp my-extension-pack/extensions/* $IWE_WORKSPACE/extensions/
+# Просмотреть params-defaults.yaml и добавить нужные параметры в $IWE_WORKSPACE/params.yaml вручную
 ```
 
 Посмотреть все доступные extension points: `/extend`

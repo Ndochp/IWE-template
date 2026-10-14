@@ -124,7 +124,7 @@ fi
 cat "$reply_file" || die 'cannot emit peer response'
 ```
 
-В шаблоне адаптеры и исходные фильтры живут в `${IWE_TEMPLATE:-$HOME/IWE/FMT-exocortex-template}/scripts/`. В отдельном репозитории управления могут существовать автономные копии адаптеров и фильтров; изменение исходника не доставляет их туда автоматически. Такое разведение требует отдельного переноса с проверкой содержимого (`content-diff`). Для писателя этого скилла `ADAPTER_PATH[$vendor]="${IWE_TEMPLATE:-$HOME/IWE/FMT-exocortex-template}/<адаптер из таблицы>"` и `PEER_AGENT_ID[$vendor]="<peer_agent из таблицы>"` (bash associative arrays; порядок вызова = порядок `PEER_VENDORS`). Используются везде ниже вместо хардкода `kimi-peer-adapter.sh`/`kimi-headless`. (issue #830)
+В шаблоне адаптеры и исходные фильтры живут в `${IWE_TEMPLATE:-$IWE_WORKSPACE/FMT-exocortex-template}/scripts/`. В отдельном репозитории управления могут существовать автономные копии адаптеров и фильтров; изменение исходника не доставляет их туда автоматически. Такое разведение требует отдельного переноса с проверкой содержимого (`content-diff`). Для писателя этого скилла `ADAPTER_PATH[$vendor]="${IWE_TEMPLATE:-$IWE_WORKSPACE/FMT-exocortex-template}/<адаптер из таблицы>"` и `PEER_AGENT_ID[$vendor]="<peer_agent из таблицы>"` (bash associative arrays; порядок вызова = порядок `PEER_VENDORS`). Используются везде ниже вместо хардкода `kimi-peer-adapter.sh`/`kimi-headless`. (issue #830)
 
 **§0в.2 Проверка доступности vendor'ов (capability-check, WP-509 Ф5).** После построения `ADAPTER_PATH`, до анонса напарников:
 
@@ -214,7 +214,7 @@ if verification_class in ("open-loop", "problem-framing"):
 ## Шаг 1. Инициализация
 
 ```bash
-SESSIONS_DIR="$HOME/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/sessions"
+SESSIONS_DIR="$IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/sessions"
 TODAY=$(date +%Y-%m-%d)
 MONTH=$(date +%Y-%m)
 DAY=$(date +%d)
@@ -231,12 +231,12 @@ Slug = первые 4 латинских слова из задачи строч
 **1.0 Session-guard open (WP-398, обязательно, ДО любых Write/Edit в сессии).** Синхронизирует пир-сессию с `session-guard.sh` Scope gate — без этого коммит на Шаге 4.5 будет заблокирован pre-commit хуком (mtime файлов сессии старше семафора). WP берётся из Шага 0б (найденный или «day-close»/«unknown», если РП не назначен):
 
 ```bash
-IWE_AGENT=claude-code bash "${IWE_SCRIPTS:-$HOME/IWE/scripts}/session-guard.sh" open \
+IWE_AGENT=claude-code bash "${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/session-guard.sh" open \
   --wp "<WP-NNN из Шага 0б>" --agent claude-code --close-path peer-session \
   --task "<задача одной строкой>" --slug "$SESSION_ID"
 ```
 
-> **Не хардкодить `~/IWE/scripts/session-guard.sh`.** Пир-сессия 2026-07-31-16-wp484-new-order-cutover сначала внесла такой хардкод по образцу `day-close/SKILL.md`, но холодный ревью нашёл: у обычного пользователя шаблона `setup.sh` НЕ копирует корневую `scripts/` — существует только каталог скриптов внутри шаблона, и `${IWE_SCRIPTS:-...}` резолвится именно туда намеренно (issue #266, commit `835d5ea` — тот же хардкод уже один раз чинили этим фоллбэком). Хардкод в `day-close/SKILL.md` — недокументированный долг, ждущий той же поломки при промоции, не образец для копирования. Для author-mode расхождение реальное (FMT-копия `session-guard.sh` отстаёт от корневой на фиксы WP-484 Нить1) — но лечится синком `template-sync.sh` (с отдельного разрешения пилота, S-33) или личной правкой `~/.iwe-paths`, не хардкодом в файле, который промотируется всем пользователям шаблона.
+> **Не хардкодить `$IWE_WORKSPACE/scripts/session-guard.sh`.** Пир-сессия 2026-07-31-16-wp484-new-order-cutover сначала внесла такой хардкод по образцу `day-close/SKILL.md`, но холодный ревью нашёл: у обычного пользователя шаблона `setup.sh` НЕ копирует корневую `scripts/` — существует только каталог скриптов внутри шаблона, и `${IWE_SCRIPTS:-...}` резолвится именно туда намеренно (issue #266, commit `835d5ea` — тот же хардкод уже один раз чинили этим фоллбэком). Хардкод в `day-close/SKILL.md` — недокументированный долг, ждущий той же поломки при промоции, не образец для копирования. Для author-mode расхождение реальное (FMT-копия `session-guard.sh` отстаёт от корневой на фиксы WP-484 Нить1) — но лечится синком `template-sync.sh` (с отдельного разрешения пилота, S-33) или личной правкой `~/.iwe-paths`, не хардкодом в файле, который промотируется всем пользователям шаблона.
 
 Если команда упала (exit ≠ 0) — не блокировать сессию: сообщить пилоту одной строкой «session-guard open не сработал (<причина>), продолжаю без семафора — на Шаге 4.5 возможна ручная разблокировка через touch/note-file» и идти дальше. Semaphore-файл session-guard создаёт СВОЙ ORZ-скаффолд-заготовку по пути `sessions/<MONTH>/<TODAY>-<CLEAN_SLUG>.md` — тот же путь, что закрывающий файл пир-сессии из Шага 4.4/4.5.0 (до 2026-08-03 эти два места ошибочно считали разные пути, см. пометку на Шаге 4.4); Шаг 4.5.0 дописывает в этот же файл финальное содержимое, а не создаёт новый.
 
@@ -898,7 +898,7 @@ DURATION_MIN=$(( (NOW_EPOCH - START_EPOCH) / 60 ))
 2. Спросить: «Что в этой сессии стоит запомнить на будущее — не про саму задачу, а про то, как шла работа?» (дословно вопрос Ф18, `CONCEPT-night-cycle.md §18`).
 3. Записать ответ в дневной ledger (issue #409: скрипт есть не на каждой установке — не блокировать при отсутствии):
    ```bash
-   LEDGER_SCRIPT="$HOME/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/scripts/ledger-append.sh"
+   LEDGER_SCRIPT="$IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/scripts/ledger-append.sh"
    if [ -f "$LEDGER_SCRIPT" ]; then
      bash "$LEDGER_SCRIPT" day "$(date +%F)" session_reflection "{\"wp\": \"<WP-NNN>\", \"answer\": <экранированный ответ>}" peer-conversation
    else
@@ -1097,7 +1097,7 @@ Slug-часть (без даты, с номером — та же формула
 # даты) — $SESSION_SLUG уже определён на Шаге 4.4. SESSION_ID здесь ВСЕГДА
 # начинается с "$TODAY-" (Шаг 1: "${TODAY}-${NUM}-${SLUG}"), поэтому склейка
 # "${TODAY}-${SESSION_ID}" без предварительного вычитания задваивала бы дату.
-GUARD_ORZ="$HOME/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/sessions/$MONTH/${TODAY}-${SESSION_SLUG}.md"
+GUARD_ORZ="$IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/sessions/$MONTH/${TODAY}-${SESSION_SLUG}.md"
 cat > "$GUARD_ORZ" <<EOF
 ---
 date: $TODAY
@@ -1136,7 +1136,7 @@ EOF
 **4.5.1 Commit + push:**
 
 ```bash
-(cd "$HOME/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}"
+(cd "$IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}"
 # pathspec после `--`: commit ТОЛЬКО файлы сессии, не подметаем чужое
 # pre-staged из общего индекса (mis-attribution, см. 2026-06-20-39).
 # $GUARD_ORZ (Шаг 4.5.0) — тот же путь, что "$TODAY-$SESSION_SLUG.md" (Шаг 4.4),
@@ -1151,7 +1151,7 @@ git push
 **4.5.2 Session-guard close** (best-effort, ПОСЛЕ успешного push — закрывать семафор раньше нельзя, иначе Scope gate на 4.5.1 не найдёт активного семафора):
 
 ```bash
-IWE_AGENT=claude-code bash "${IWE_SCRIPTS:-$HOME/IWE/scripts}/session-guard.sh" close --agent claude-code 2>&1 || \
+IWE_AGENT=claude-code bash "${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/session-guard.sh" close --agent claude-code 2>&1 || \
   echo "session-guard close не прошёл — семафор останется активным до auto-orphan (TTL 30 мин на следующем open), не блокирует пилота"
 ```
 

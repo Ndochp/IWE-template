@@ -43,7 +43,7 @@ Day Close = протокол. Блокирующее требование — н
 <!-- Детали: day-close-details.md § Шаг 0в -->
 
 ### 1. Сбор данных
-**Strategy_day (шаг 0в) → неприменимо, пропустить** (нет DayPlan, сверять таблицу «На сегодня» не с чем). Иначе: запустить bash-скрипт сбора коммитов за день по всем git-репо в `$HOME/IWE/`. Сопоставить с таблицей «На сегодня» из DayPlan → определить статусы.
+**Strategy_day (шаг 0в) → неприменимо, пропустить** (нет DayPlan, сверять таблицу «На сегодня» не с чем). Иначе: запустить bash-скрипт сбора коммитов за день по всем git-репо в `$IWE_WORKSPACE/`. Сопоставить с таблицей «На сегодня» из DayPlan → определить статусы.
 <!-- Детали: day-close-details.md § Шаг 1 -->
 
 ### 2. Governance batch
@@ -65,13 +65,13 @@ Day Close = протокол. Блокирующее требование — н
 
 ### 4б. Memory Drift Scan
 Две независимые проверки (issue #326 — лексическая одна пропускала расхождения статуса без триггерных слов):
-1. **Структурная:** `. "${IWE_PATHS_FILE:-$HOME/.iwe-paths}" 2>/dev/null; T="${IWE_TEMPLATE:-$HOME/IWE/FMT-exocortex-template}"; PY3="$(bash "$T/.claude/lib/find-python3.sh")" && "$PY3" "$T/.claude/scripts/memory-drift-scan.py"` — сверяет колонку «Статус» MEMORY.md с полем `status` WP-context по номеру РП. Exit 1 → для каждой найденной строки обновить устаревшее.
+1. **Структурная:** `. "${IWE_PATHS_FILE:-$HOME/.iwe-paths}" 2>/dev/null; T="${IWE_TEMPLATE:-$IWE_WORKSPACE/FMT-exocortex-template}"; PY3="$(bash "$T/.claude/lib/find-python3.sh")" && "$PY3" "$T/.claude/scripts/memory-drift-scan.py"` — сверяет колонку «Статус» MEMORY.md с полем `status` WP-context по номеру РП. Exit 1 → для каждой найденной строки обновить устаревшее.
 2. **Лексическая:** Grep MEMORY.md на паттерны «ждёт/блокер/blocked/остановлен» (ловит текстовые блокеры без изменения статуса — отдельный класс, скрипт п.1 их не видит). Для каждого: найти WP-context, проверить статус, обновить устаревшее.
 Анонс при 0 расхождений по обеим проверкам: *«Drift-scan: N паттернов + M структурных, устаревших нет»*.
 <!-- Детали: day-close-details.md § Шаг 4б -->
 
 ### 4в. Index Health Check
-`. "${IWE_PATHS_FILE:-$HOME/.iwe-paths}" 2>/dev/null; T="${IWE_TEMPLATE:-$HOME/IWE/FMT-exocortex-template}"; PY3="$(bash "$T/.claude/lib/find-python3.sh")" && "$PY3" "$T/.claude/scripts/check-index-health.py"` — для каждого FAIL/WARN: диагностика (дамп vs жанр) → перенести или пометить skip.
+`. "${IWE_PATHS_FILE:-$HOME/.iwe-paths}" 2>/dev/null; T="${IWE_TEMPLATE:-$IWE_WORKSPACE/FMT-exocortex-template}"; PY3="$(bash "$T/.claude/lib/find-python3.sh")" && "$PY3" "$T/.claude/scripts/check-index-health.py"` — для каждого FAIL/WARN: диагностика (дамп vs жанр) → перенести или пометить skip.
 <!-- Детали: day-close-details.md § Шаг 4в -->
 
 ### 4. Lesson Hygiene
@@ -109,13 +109,13 @@ TODAY_DAYPLAN="${IWE_GOVERNANCE_REPO:-DS-strategy}/archive/day-plans/DayPlan $(d
 <!-- Детали postconditions: day-close-details.md § Шаг 9 -->
 
 ### 10. Rule Classifier
-`SCRIPT="$HOME/IWE/.claude/scripts/rule-classifier.py"; [ -f "$SCRIPT" ] && python3 "$SCRIPT" || echo "skip: rule-classifier.py требует ручной установки (claude CLI + PACK-agent-rules)"` (идемпотентно, kill если >60 сек). **ДО коммита** — иначе его правки уходят в незакоммиченный хвост (issue #249).
+`SCRIPT="$IWE_WORKSPACE/.claude/scripts/rule-classifier.py"; [ -f "$SCRIPT" ] && python3 "$SCRIPT" || echo "skip: rule-classifier.py требует ручной установки (claude CLI + PACK-agent-rules)"` (идемпотентно, kill если >60 сек). **ДО коммита** — иначе его правки уходят в незакоммиченный хвост (issue #249).
 
 ### 10a. Extensions (after)
 `bash .claude/scripts/load-extensions.sh day-close after` → exit 0: `Read` каждый файл из вывода (alphabetic) → выполнить. Exit 1/3 (нет совпадений / нет каталога `extensions/` — штатно для новой установки, либо каталог повреждён) → пропустить. Поддерживает `extensions/day-close.after.md` И `extensions/day-close.after.<suffix>.md`. Симметрично week-close (шаг 9): вызывается ДО финального коммита (10b), чтобы правки расширений попадали в тот же коммит, не оставались незакоммиченным хвостом (issue #320/#322).
 
 ### 10b. Финальный коммит (все затронутые репозитории, не только governance)
-`git status --short` по КАЖДОМУ репо, который сессия трогала за день — как минимум workspace root (`$HOME/IWE/`, там физически лежат `MEMORY.md` и `memory/*.md`, их правят шаги 4б/4) и `${IWE_GOVERNANCE_REPO:-DS-strategy}` (WeekPlan/DayPlan/WP-REGISTRY). Незафиксированное (включая правки шага 10a) стадировать и коммитить только одной fail-closed командой ниже: ненулевой код = СТОП, отдельный `git commit` после него запрещён. Переходить к шагу 11 только когда `git status` чист во всех репо.
+`git status --short` по КАЖДОМУ репо, который сессия трогала за день — как минимум workspace root (`$IWE_WORKSPACE/`, там физически лежат `MEMORY.md` и `memory/*.md`, их правят шаги 4б/4) и `${IWE_GOVERNANCE_REPO:-DS-strategy}` (WeekPlan/DayPlan/WP-REGISTRY). Незафиксированное (включая правки шага 10a) стадировать и коммитить только одной fail-closed командой ниже: ненулевой код = СТОП, отдельный `git commit` после него запрещён. Переходить к шагу 11 только когда `git status` чист во всех репо.
 
 <!-- issue-511-guard:start -->
 ```bash
@@ -292,7 +292,7 @@ Sub-agent Haiku R23 (context isolation): передать чеклист + че�
 - [ ] Видео: обработанные помечены (если video.enabled)
 - [ ] Governance: REPOSITORY-REGISTRY, navigation.md, MAP.002
 - [ ] Backup: `day-close.sh` выполнен
-- [ ] **Rule-engine FP-stats** (WP-272 Ф2.5): `[ -f ~/IWE/.claude/scripts/fp-stats.py ] && python3 ~/IWE/.claude/scripts/fp-stats.py --date $(date +%Y-%m-%d) || echo "skip: fp-stats.py требует rule-classifier.py"` → если есть `⚠️ REVISE` → **спросить пилота по факту флага** (WP-545 Ф5, 21.08 — заменяет прежний еженедельный R8-вопрос, который спрашивал вслепую по расписанию, не по конкретному сигналу): «правило `<X>` — это ложные срабатывания детектора, или реальный, но неудобный сигнал?» Ответ → в «Завтра начать с» вместе с решением (переформулировать правило / оставить как есть)
+- [ ] **Rule-engine FP-stats** (WP-272 Ф2.5): `[ -f $IWE_WORKSPACE/.claude/scripts/fp-stats.py ] && python3 $IWE_WORKSPACE/.claude/scripts/fp-stats.py --date $(date +%Y-%m-%d) || echo "skip: fp-stats.py требует rule-classifier.py"` → если есть `⚠️ REVISE` → **спросить пилота по факту флага** (WP-545 Ф5, 21.08 — заменяет прежний еженедельный R8-вопрос, который спрашивал вслепую по расписанию, не по конкретному сигналу): «правило `<X>` — это ложные срабатывания детектора, или реальный, но неудобный сигнал?» Ответ → в «Завтра начать с» вместе с решением (переформулировать правило / оставить как есть)
 - [ ] Верификация compliance: /verify запускался сегодня?
 - [ ] WakaTime + Мультипликатор: часы / бюджет ПО ФАКТУ (sessions/00-index.md перечислен; ad-hoc оценены по ходам; сверхплановое — по факту); sanity check ≥10 peer-сессий
 - [ ] Итоги дня записаны в DayPlan **(postcondition 9a: grep подтверждён)** — **N/A на strategy_day** (шаг 0в)

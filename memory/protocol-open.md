@@ -42,7 +42,7 @@ bash "$IWE_SCRIPTS/route-task.sh" --skill <skill-name>
 **Если тега нет** → вызвать `/artifactor` (DP.ROLE.058) — преобразует сырой запрос в structured request с routing-тегом:
 
 ```bash
-python3 "${IWE_SCRIPTS:-$HOME/IWE/scripts}/artifactor.py" "$REQUEST"
+python3 "${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/artifactor.py" "$REQUEST"
 # exit 0 → JSON (routing_tag) · 1 → INSUFFICIENT_INPUT (уточнить у пилота) · 2 → NO_KEYWORD_MATCH (LLM-классификация из SKILL.md)
 ```
 Результат (`structured request` с `routing_tag`) передать обратно в Маршрутизатор. Триггер Артефактора: запрос расплывчат, нет чёткого скилла, нет РП-привязки. **Не вызывать исполнителя напрямую из Артефактора.**
@@ -60,7 +60,7 @@ python3 "${IWE_SCRIPTS:-$HOME/IWE/scripts}/artifactor.py" "$REQUEST"
 
 1. Ссылаемся на номер РП.
 2. **DayPlan Gate:** до любого поиска или создания DayPlan прочитать
-   `${IWE_WORKSPACE:-$HOME/IWE}/${IWE_GOVERNANCE_REPO:-DS-strategy}/exocortex/day-rhythm-config.yaml`
+   `$IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/exocortex/day-rhythm-config.yaml`
    → `day_open.strategy_day`. Если файл отсутствует, нечитаем, не разбирается
    как YAML или значение не входит в карту ниже → **inventory/STOP только для
    DayPlan-действия**: DayPlan не искать, не создавать и не изменять; назвать
@@ -76,7 +76,7 @@ python3 "${IWE_SCRIPTS:-$HOME/IWE/scripts}/artifactor.py" "$REQUEST"
 
    **Шаг 3a — Bundle.** Запустить детерминированный сборщик контекста:
    ```bash
-   bash "${IWE_WORKSPACE:-$HOME/IWE}/.claude/scripts/wp-sync-bundle.sh" WP-N > /tmp/wp-sync-bundle-$$.md
+   bash "$IWE_WORKSPACE/.claude/scripts/wp-sync-bundle.sh" WP-N > /tmp/wp-sync-bundle-$$.md
    ```
    Exit 0 → читать вывод. Exit 1 → РП не найден → перейти к Ритуалу с пометкой «контекст не найден». Exit 2 → ошибка парсинга → перейти к Ритуалу, поднять stderr в «Требует внимания».
    Exit 4 → не найдена библиотека wp-num.sh: ошибка установки, не «РП не найден»; сообщить пилоту и обновить шаблон.

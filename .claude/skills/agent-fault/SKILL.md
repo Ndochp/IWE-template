@@ -38,7 +38,7 @@ routing:
 ```bash
 : "${IWE_FAULT_SUBJECT_KIND:?set the actual personality, runtime, or system kind}"
 : "${IWE_FAULT_SUBJECT_ID:?set the actual stable subject id}"
-IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$HOME/IWE}}"
+IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$IWE_WORKSPACE}}"
 IWE_DIR="$IWE_ROOT" \
 IWE_EXECUTOR_CATALOG="$IWE_ROOT/${IWE_GOVERNANCE_REPO:-${GOVERNANCE_REPO:-DS-strategy}}/scripts/executor-catalog.yaml" \
 bash "${IWE_SCRIPTS:-$IWE_ROOT/FMT-exocortex-template/scripts}/route-task.sh" \

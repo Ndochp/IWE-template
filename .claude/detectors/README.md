@@ -57,7 +57,7 @@ echo '{
 Все срабатывания и ошибки — в `.claude/logs/capture_log.jsonl`:
 
 ```bash
-tail -f ~/IWE/.claude/logs/capture_log.jsonl | jq .
+tail -f $IWE_WORKSPACE/.claude/logs/capture_log.jsonl | jq .
 ```
 
 Статусы:

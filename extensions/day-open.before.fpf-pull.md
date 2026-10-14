@@ -16,7 +16,7 @@ if [ -f "/tmp/iwe-dry-run.flag" ]; then
     echo "[extension day-open.before.fpf-pull] dry-run active, skipping write steps"
     exit 0
 fi
-FPF_DIR="${IWE_ROOT:-$HOME/IWE}/FPF"
+FPF_DIR="${IWE_ROOT:-$IWE_WORKSPACE}/FPF"
 if [ ! -d "$FPF_DIR/.git" ]; then
     echo "[fpf-pull] FPF репозиторий не найден ($FPF_DIR) — пропуск"
     exit 0

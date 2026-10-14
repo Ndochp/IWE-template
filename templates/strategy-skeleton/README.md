@@ -14,10 +14,10 @@
 
 ## Как использовать
 
-1. **Склонируй или скопируй этот шаблон** в `~/IWE/DS-strategy/` (или другое имя на твой вкус — важно, чтобы префикс был `DS-`).
+1. **Склонируй или скопируй этот шаблон** в `$IWE_WORKSPACE/DS-strategy/` (или другое имя на твой вкус — важно, чтобы префикс был `DS-`).
 2. **Проинициализируй git:**
    ```bash
-   cd ~/IWE/DS-strategy
+   cd $IWE_WORKSPACE/DS-strategy
    git init && git add . && git commit -m "init from FMT-strategy-template"
    ```
 3. **Заполни заготовки в `docs/`:**
@@ -28,8 +28,8 @@
 
 ## Связь с остальной IWE
 
-- **Личное знание:** `~/IWE/PACK-personal/` (Lifework, ценности, миссия)
-- **Платформенное знание:** `~/IWE/PACK-digital-platform/` (общая онтология)
+- **Личное знание:** `$IWE_WORKSPACE/PACK-personal/` (Lifework, ценности, миссия)
+- **Платформенное знание:** `$IWE_WORKSPACE/PACK-digital-platform/` (общая онтология)
 - **Командные планы:** `inbox/WP-*.md` + WP-REGISTRY.md в своём ecosystem-development репозитории, если он есть
 
 ## Принципы (из CLAUDE.md)

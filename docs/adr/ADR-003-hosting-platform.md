@@ -99,8 +99,8 @@ bash setup.sh --level=T2 --yes
 
 ```bash
 # Полный экспорт: git clone = все файлы + история
-git clone https://hosting.iwe.ai/alice/my-exocortex ~/IWE/my-exocortex
-cd ~/IWE/my-exocortex && bash setup.sh --level=T4
+git clone https://hosting.iwe.ai/alice/my-exocortex $IWE_WORKSPACE/my-exocortex
+cd $IWE_WORKSPACE/my-exocortex && bash setup.sh --level=T4
 ```
 
 Это гарантирует vendor lock-in = 0.
@@ -109,7 +109,7 @@ cd ~/IWE/my-exocortex && bash setup.sh --level=T4
 
 ```bash
 vagrant up  # скачивает образ Ubuntu + tmux + Claude Code + IWE T1
-# → пользователь в tmux-сессии в ~/IWE/
+# → пользователь в tmux-сессии в $IWE_WORKSPACE/
 ```
 
 Vagrant-образ = третий способ доставки (для DevOps-аудитории, тестирования).

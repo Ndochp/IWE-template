@@ -21,7 +21,7 @@
 ### Шаг 1. Проверить коллизии
 
 ```bash
-~/IWE/FMT-exocortex-template/scripts/check-script-collisions.sh
+$IWE_WORKSPACE/FMT-exocortex-template/scripts/check-script-collisions.sh
 ```
 
 Если скрипт с таким же именем уже в FMT — разобрать коллизию: merge (оставить
@@ -32,8 +32,8 @@
 
 | Авторская константа | Универсальный паттерн |
 |---------------------|-----------------------|
-| `$HOME/IWE` | `${WORKSPACE_DIR:-$HOME/IWE}` |
-| `$HOME/IWE/PACK-personal` | `params.yaml` → пользовательский ключ |
+| `$IWE_WORKSPACE` | `${WORKSPACE_DIR:-$IWE_WORKSPACE}` |
+| `$IWE_WORKSPACE/PACK-personal` | `params.yaml` → пользовательский ключ |
 | Личные пути (governance, knowledge-index) | `params.yaml` параметр + graceful skip если пусто |
 | WakaTime CLI путь | `${WAKATIME_CLI:-$HOME/.wakatime/wakatime-cli}` |
 | FMT путь | `${FMT_PATH:-${WORKSPACE_DIR}/FMT-exocortex-template}` |

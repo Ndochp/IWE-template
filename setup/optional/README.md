@@ -16,7 +16,7 @@ Monitors your coding activity via WakaTime and sends a macOS notification when y
 
 ```bash
 # 1. Replace placeholder with your workspace path
-sed "s|{{WORKSPACE_DIR}}|$HOME/IWE|g" setup/optional/pomodoro-alert.plist \
+sed "s|{{WORKSPACE_DIR}}|$IWE_WORKSPACE|g" setup/optional/pomodoro-alert.plist \
   > ~/Library/LaunchAgents/com.exocortex.pomodoro-alert.plist
 
 # 2. Load the agent (starts immediately, runs every 5 min)
@@ -78,7 +78,7 @@ bash setup/optional/setup-local-gateway.sh
 
 ```bash
 kill "$(cat ~/.iwe/gateway.pid)"          # остановить демон
-rm -rf ~/IWE/DS-MCP/local-gateway         # удалить код шлюза
+rm -rf $IWE_WORKSPACE/DS-MCP/local-gateway         # удалить код шлюза
 rm -f ~/.iwe/gateway.sock ~/.iwe/gateway-daemon.log ~/.iwe/gateway.pid
 ```
 

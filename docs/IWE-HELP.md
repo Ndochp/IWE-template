@@ -83,9 +83,9 @@ MCP подключается через https://claude.ai/settings/connectors (�
 
 Ручной запуск (в терминале или встроенном терминале VS Code):
 ```bash
-bash ~/IWE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh day-plan
+bash $IWE_WORKSPACE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh day-plan
 # Разбор заметок: из терминала только пометки ✅предложено и предложения, архив только в сессии Claude Code, по вашему слову
-bash ~/IWE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh note-review
+bash $IWE_WORKSPACE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh note-review
 ```
 
 ### Экстрактор (R2)
@@ -93,12 +93,12 @@ bash ~/IWE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh note-re
 
 Всегда предлагает, никогда не пишет без одобрения (human-in-the-loop).
 
-Установка (в терминале): `bash ~/IWE/FMT-exocortex-template/roles/extractor/install.sh`
+Установка (в терминале): `bash $IWE_WORKSPACE/FMT-exocortex-template/roles/extractor/install.sh`
 
 ### Синхронизатор (R8)
 Центральный диспетчер (bash, не ИИ). Управляет расписанием всех ролей, отправляет уведомления в Telegram, делает ночной обзор кода.
 
-Установка (в терминале): `bash ~/IWE/FMT-exocortex-template/roles/synchronizer/install.sh`
+Установка (в терминале): `bash $IWE_WORKSPACE/FMT-exocortex-template/roles/synchronizer/install.sh`
 
 ---
 
@@ -131,7 +131,7 @@ MEMORY.md — личные (текущие задачи, РП недели). Р�
 ## Обновление IWE
 
 ```bash
-cd ~/IWE/FMT-exocortex-template
+cd $IWE_WORKSPACE/FMT-exocortex-template
 bash update.sh          # обновить
 bash update.sh --check  # проверить без применения
 ```
@@ -156,7 +156,7 @@ bash update.sh --check  # проверить без применения
 - `.Текст заметки` (точка + текст)
 - `.` + ответ/пересылка на сообщение
 
-Заметки попадают в `DS-strategy/inbox/fleeting-notes.md` и ждут вашего решения. Разбор (Note-Review) идёт вручную, по вечерам он сам не запускается. Три способа: секция «Разбор заметок» в плане дня (мини-разбор в Открытии дня); просьба «разбери заметки» в сессии Claude Code (все шаги по инструкции `roles/strategist/prompts/note-review.md`, архив только по вашему слову); команда `bash ~/IWE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh note-review` в терминале (только пометки `✅предложено` и предложения, без архива).
+Заметки попадают в `DS-strategy/inbox/fleeting-notes.md` и ждут вашего решения. Разбор (Note-Review) идёт вручную, по вечерам он сам не запускается. Три способа: секция «Разбор заметок» в плане дня (мини-разбор в Открытии дня); просьба «разбери заметки» в сессии Claude Code (все шаги по инструкции `roles/strategist/prompts/note-review.md`, архив только по вашему слову); команда `bash $IWE_WORKSPACE/FMT-exocortex-template/roles/strategist/scripts/strategist.sh note-review` в терминале (только пометки `✅предложено` и предложения, без архива).
 
 ---
 
@@ -168,7 +168,7 @@ bash update.sh --check  # проверить без применения
 
 **MEMORY.md не загружается** — проверь путь: `~/.claude/projects/-Users-<username>-IWE/memory/MEMORY.md`. Имя директории = путь к workspace через дефисы.
 
-**DS-strategy не создан** — вручную: `mkdir -p ~/IWE/DS-strategy/{current,inbox,docs,archive} && cd ~/IWE/DS-strategy && git init`.
+**DS-strategy не создан** — вручную: `mkdir -p $IWE_WORKSPACE/DS-strategy/{current,inbox,docs,archive} && cd $IWE_WORKSPACE/DS-strategy && git init`.
 
 **Заметки не приходят из Telegram** — проверь подписку в @aist_me_bot. Формат: точка + текст (`.Моя заметка`).
 

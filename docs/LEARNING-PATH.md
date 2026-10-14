@@ -187,7 +187,7 @@ L1: Ecosystem    — вся система: платформа + сообщес�
 | **L1: Ecosystem** | Сообщество, семинары, контент | systemsworld.club, Telegram-каналы | Ты участвуешь |
 | **L2: Platform** | Сервисы, к которым подключаешься | Бот @aist_me_bot, Knowledge Index | Обновляется разработчиком |
 | **L3: Template** | Шаблон, из которого создан твой IWE | Этот репо (FMT-exocortex-template) | `update.sh` — Platform-space |
-| **L4: Personal IWE** | Твоя работа, планы, знания | ~/IWE/CLAUDE.md, DS-strategy/ | Только ты (User-space) |
+| **L4: Personal IWE** | Твоя работа, планы, знания | {{WORKSPACE_DIR}}/CLAUDE.md, DS-strategy/ | Только ты (User-space) |
 
 **Где изучить:**
 - [ONTOLOGY.md](../ONTOLOGY.md) § «Контуры системы»
@@ -249,7 +249,7 @@ FMT-exocortex-template/
 #### Workspace после setup
 
 ```
-~/IWE/
+$IWE_WORKSPACE/
 ├── CLAUDE.md                          # читается каждую сессию (авто)
 ├── DS-strategy/                       # ★ ежедневно: планы, inbox, стратегия
 │   ├── current/DayPlan, WeekPlan      # Стратег пишет, ты читаешь
@@ -300,7 +300,7 @@ FMT-exocortex-template/
 
 ### 2.5. Обновления: update.sh
 
-**Одна команда:** `cd ~/IWE/FMT-exocortex-template && bash update.sh`
+**Одна команда:** `cd $IWE_WORKSPACE/FMT-exocortex-template && bash update.sh`
 
 Скрипт скачивает манифест обновлений с GitHub, сравнивает sha256 локальных файлов с upstream, показывает превью и применяет после подтверждения:
 
@@ -729,7 +729,7 @@ DS — самый частый тип репозитория, который т�
 
 | Тип знания | Куда | Когда | Кто пишет |
 |------------|------|-------|-----------|
-| Правило для всех репо (1-3 строки) | `~/IWE/CLAUDE.md` | Сразу | Claude |
+| Правило для всех репо (1-3 строки) | `$IWE_WORKSPACE/CLAUDE.md` | Сразу | Claude |
 | Правило для одного репо | `<repo>/CLAUDE.md` | Сразу | Claude |
 | Доменное (архитектура, паттерны) | Соответствующий Pack | При Close | R2 Экстрактор → Pack |
 | Различение, метод, FM, WP | Соответствующий Pack | При Close | R2 Экстрактор → Pack |
@@ -747,7 +747,7 @@ DS — самый частый тип репозитория, который т�
 
 | Уровень | Файл | Область действия | Кто обновляет |
 |---------|------|-----------------|---------------|
-| **Корневой** | `~/IWE/CLAUDE.md` | Все репо в workspace | Platform (update.sh) + ты (уроки) |
+| **Корневой** | `$IWE_WORKSPACE/CLAUDE.md` | Все репо в workspace | Platform (update.sh) + ты (уроки) |
 | **Репозиторный** | `<repo>/CLAUDE.md` | Только этот репо | Ты (правила конкретного репо) |
 
 **Когда что использовать:**
@@ -983,7 +983,7 @@ PACK-{область}/
 2. При Close → Claude активирует роль Экстрактора (R2) и показывает Extraction Report
 3. Ты одобряешь → сущности записываются в Pack
 
-**Inbox-Check работает без тебя** — headless-запуск по расписанию (каждые 3 часа) не может использовать твой интерактивный вход в Claude Code, ему нужен отдельный долгоживущий токен подписки. Подключается один раз: `cd ~/IWE/FMT-exocortex-template && bash roles/extractor/scripts/connect.sh` (после `roles/extractor/install.sh`, см. [roles/extractor/README.md](../roles/extractor/README.md)). Session-Close, On-Demand и Bulk-Extraction работают в твоей уже открытой сессии — подключения не требуют.
+**Inbox-Check работает без тебя** — headless-запуск по расписанию (каждые 3 часа) не может использовать твой интерактивный вход в Claude Code, ему нужен отдельный долгоживущий токен подписки. Подключается один раз: `cd $IWE_WORKSPACE/FMT-exocortex-template && bash roles/extractor/scripts/connect.sh` (после `roles/extractor/install.sh`, см. [roles/extractor/README.md](../roles/extractor/README.md)). Session-Close, On-Demand и Bulk-Extraction работают в твоей уже открытой сессии — подключения не требуют.
 
 **Где изучить:**
 - Протокол Close (§ 5.1) — когда активируется Экстрактор
@@ -1485,9 +1485,9 @@ Telegram-бот — основная точка входа для T1-T3. Для 
 
 #### «Obsidian показывает белый экран при открытии IWE»
 
-**Что происходит.** Obsidian пытается проиндексировать весь `~/IWE`, включая большие технические Markdown-файлы. Например, `FPF/FPF-Spec.md` может занимать много мегабайт, и интерфейс зависает на белом экране.
+**Что происходит.** Obsidian пытается проиндексировать весь `$IWE_WORKSPACE`, включая большие технические Markdown-файлы. Например, `FPF/FPF-Spec.md` может занимать много мегабайт, и интерфейс зависает на белом экране.
 
-**Что делать.** Открой в Obsidian только отдельный governance-репозиторий (`DS-strategy`) как vault. Корень `~/IWE` как vault не поддерживается. Для просмотра всего workspace используй VS Code; большие технические репозитории не добавляй в Obsidian-vault через символическую ссылку (symlink).
+**Что делать.** Открой в Obsidian только отдельный governance-репозиторий (`DS-strategy`) как vault. Корень `$IWE_WORKSPACE` как vault не поддерживается. Для просмотра всего workspace используй VS Code; большие технические репозитории не добавляй в Obsidian-vault через символическую ссылку (symlink).
 
 #### «Pack не используется при работе»
 
@@ -1508,7 +1508,7 @@ Telegram-бот — основная точка входа для T1-T3. Для 
 ## Мои Pack-репозитории
 | Pack | Путь | Тема |
 |------|------|------|
-| PACK-my-domain | ~/IWE/PACK-my-domain/ | Ключевые сущности моей области |
+| PACK-my-domain | $IWE_WORKSPACE/PACK-my-domain/ | Ключевые сущности моей области |
 ```
 
 #### «Не понимаю, что куда записывается»
@@ -1518,7 +1518,7 @@ Telegram-бот — основная точка входа для T1-T3. Для 
 | Что | Куда | Почему именно туда |
 |-----|------|--------------------|
 | Список задач (РП) недели | `MEMORY.md` | Claude видит каждую сессию, проверяет через WP Gate |
-| Правила работы для всех проектов | `~/IWE/CLAUDE.md` | Claude видит каждую сессию |
+| Правила работы для всех проектов | `$IWE_WORKSPACE/CLAUDE.md` | Claude видит каждую сессию |
 | Правила для одного проекта | `<repo>/CLAUDE.md` | Claude видит при работе в этом репо |
 | Справочник (термины, чеклисты) | `memory/*.md` | Claude читает по триггеру (§ 5.2) |
 | Подробности каждой задачи | `DS-strategy/inbox/WP-*.md` | Claude читает при открытии задачи (Ритуал, шаг 3) |
@@ -1531,7 +1531,7 @@ Telegram-бот — основная точка входа для T1-T3. Для 
 
 WP Gate **обязан** срабатывать на каждое задание. Если не срабатывает, проверь:
 
-1. **CLAUDE.md на месте?** Файл `~/IWE/CLAUDE.md` должен существовать и содержать секцию «Стадии сессии — ОРЗ».
+1. **CLAUDE.md на месте?** Файл `$IWE_WORKSPACE/CLAUDE.md` должен существовать и содержать секцию «Стадии сессии — ОРЗ».
 2. **MEMORY.md на месте?** `~/.claude/projects/{workspace-hash}/memory/MEMORY.md` должен содержать таблицу «РП текущей недели».
 3. **protocol-open.md на месте?** `memory/protocol-open.md` рядом с MEMORY.md.
 4. **Задача >15 мин?** Задачи ≤15 мин — исключение из WP Gate.
@@ -1602,13 +1602,13 @@ DS-strategy/
 **Критичное правило: Push before switch.** Перед переключением на другое устройство — push all dirty repos. Проверка:
 
 ```bash
-for repo in ~/IWE/*/; do
+for repo in $IWE_WORKSPACE/*/; do
   [ -d "$repo/.git" ] && git -C "$repo" status --porcelain | grep -q . && echo "DIRTY: $repo"
 done
 ```
 
 **Кросс-ОС нюансы:**
-- **Пути:** Использовать `~/IWE/` (тильда кросс-платформенна), или переменную `$IWE_HOME`
+- **Пути:** В инструкциях — `{{WORKSPACE_DIR}}/`, в bash-фрагментах — `$IWE_WORKSPACE/` (тильда `~/` кросс-платформенна только внутри bash), или переменную `$IWE_HOME`
 - **Symlinks:** `memory/` → `.claude/...` — на каждом устройстве свой `setup.sh` создаёт symlinks
 - **LaunchAgents vs systemd:** Шаблоны обоих хранятся в репо, `setup.sh` ставит нужный
 - **MCP пути:** `claude_desktop_config.json` содержит абсолютные пути — использовать шаблон + envsubst или platform-specific configs
@@ -1617,8 +1617,8 @@ done
 **Bootstrap нового устройства:**
 
 ```bash
-git clone <all-repos> ~/IWE/
-cd ~/IWE && ./setup.sh   # создаёт symlinks, ставит пакеты, настраивает cron
+git clone <all-repos> $IWE_WORKSPACE/
+cd $IWE_WORKSPACE && ./setup.sh   # создаёт symlinks, ставит пакеты, настраивает cron
 ```
 
 `setup.sh` определяет ОС (`uname`) и выполняет нужные действия. Живёт в DS-ecosystem-development (локальный governance-репо) или dotfiles-репо.
@@ -1635,12 +1635,12 @@ cd ~/IWE && ./setup.sh   # создаёт symlinks, ставит пакеты, �
 
 **Если хочешь WSL:**
 1. Установи WSL: `wsl --install` в PowerShell (от администратора)
-2. Внутри WSL: `mkdir -p ~/IWE && cd ~/IWE` — все репозитории должны быть в файловой системе WSL, **не** на `/mnt/c/`
+2. Внутри WSL: `mkdir -p $IWE_WORKSPACE && cd $IWE_WORKSPACE` — все репозитории должны быть в файловой системе WSL, **не** на `/mnt/c/`
 3. VS Code: установи расширение «WSL» (ms-vscode-remote.remote-wsl)
 4. Открой VS Code: `code .` из WSL-терминала → VS Code подключится к WSL
 5. Терминал в VS Code (Ctrl+`) → убедись что это WSL (bash/zsh), не PowerShell/MINGW64
 6. Claude Code: `npm install -g @anthropic-ai/claude-code` внутри WSL
-7. `cd ~/IWE && claude` — готово
+7. `cd $IWE_WORKSPACE && claude` — готово
 
 **Почему файлы в WSL, а не на Windows-диске (если выбрал WSL)?** Файловая система WSL (`~/`) в 5-10 раз быстрее, чем доступ к `/mnt/c/` (Windows-диск через WSL). Watch-скрипты, git-операции и MCP-индексация на `/mnt/c/` работают критически медленно.
 
