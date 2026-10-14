@@ -41,7 +41,19 @@ TMP_INCIDENTS=$(mktemp /tmp/br_incidents.XXXX)
 trap "rm -f $TMP_GATE_ALL $TMP_GATE_FIRED $TMP_INCIDENTS" EXIT
 
 # --- Шаг 1: gate_log ---
-GATE_LOG="$IWE_ROOT/.claude/logs/gate_log.jsonl"
+# Устойчивый резолв (тот же, что у светофора Day Open): хуки пишут лог в
+# governance-репо, в корень workspace или в каталог шаблона в зависимости от
+# установки. iwe_gate_log из scripts/lib/common.sh перебирает все раскладки;
+# при недоступной библиотеке — legacy-путь для обратной совместимости.
+if [ -f "$IWE_SCRIPTS/lib/common.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$IWE_SCRIPTS/lib/common.sh" || true
+fi
+if declare -F iwe_gate_log >/dev/null 2>&1; then
+  GATE_LOG=$(iwe_gate_log "$WORKSPACE_DIR")
+else
+  GATE_LOG="$IWE_ROOT/.claude/logs/gate_log.jsonl"
+fi
 if [ -f "$GATE_LOG" ]; then
   while IFS= read -r line; do
     ts=$(echo "$line" | jq -r '.ts // empty' 2>/dev/null)
@@ -180,7 +192,7 @@ else
   done <<< "$ALL_PATS"
 
   echo ""
-  echo "Источники: gate_log + ${INCIDENT_FILE_COUNT} incident-log файл(ов) в ~/IWE/"
+  echo "Источники: gate_log + ${INCIDENT_FILE_COUNT} incident-log файл(ов) в ${IWE_ROOT:-workspace}/"
   echo "Запустить: ~/.claude/lib/behaviour-report.sh [--period YYYY-MM] [--threshold N] [--json]"
 fi
 

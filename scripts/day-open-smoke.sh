@@ -19,8 +19,12 @@
 #
 # Зависимости:
 #   - python3 (для JSON)
-#   - ~/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/inbox/extraction-reports/ (для KE-count)
-#   - ~/IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/current/.scheduler-last-run (primary scheduler pulse)
+#   - <workspace>/${IWE_GOVERNANCE_REPO:-DS-strategy}/inbox/extraction-reports/ (для KE-count)
+#   - <workspace>/${IWE_GOVERNANCE_REPO:-DS-strategy}/current/.scheduler-last-run (primary scheduler pulse)
+#   Корень workspace резолвится через iwe_resolve_root() (env IWE_WORKSPACE/
+#   IWE_ROOT → .exocortex.env → расположение библиотеки), а НЕ через захардкоженный
+#   $HOME/IWE: на установке в нестандартной папке старый резолв молча смотрел
+#   не туда и возвращал пустые sentinel-значения (тот же класс бага, что #876).
 #
 # Failure mode: любая проверка возвращает sentinel ("missing" / -1), не падает.
 
@@ -32,8 +36,13 @@ START_TS=$(date +%s)
 HUMAN_MODE=false
 [ "${1:-}" = "--human" ] && HUMAN_MODE=true
 
-IWE_BASE="${IWE_BASE:-$HOME/IWE}"
-DS_STRATEGY="$IWE_BASE/${IWE_GOVERNANCE_REPO:-DS-strategy}"
+# Корень workspace — канонический резолв из lib/common.sh (env IWE_WORKSPACE >
+# IWE_ROOT > .exocortex.env > расположение библиотеки). Не $HOME/IWE: на
+# установке в другой папке это молча смотрело не туда (класс бага #876).
+# Пустой результат — честный sentinel: проверки ниже вернут "missing"/-1.
+IWE_BASE="${IWE_BASE:-$(iwe_resolve_root 2>/dev/null || true)}"
+# Явный override пилота — абсолютный путь к governance-репо — имеет приоритет.
+DS_STRATEGY="${IWE_DS_MY_STRATEGY:-$IWE_BASE/$(iwe_resolve_governance_repo)}"
 
 # === 1. Scheduler pulse (primary: локальный файл, fallback: статус launchctl) ===
 scheduler_pulse() {

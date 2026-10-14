@@ -440,3 +440,62 @@ iwe_scheduler_model() {
   fi
   printf '%s\n' "$value"
 }
+
+# iwe_gate_log [WORKSPACE] — устойчивый резолв пути к .claude/logs/gate_log.jsonl
+# для ЧИТАТЕЛЕЙ (светофор Day Open, behaviour-report). Писатели (хуки) в разных
+# установках пишут в разные места: protocol-stop-gate — в $IWE_ROOT/.claude/logs
+# (= корень workspace), dry-run-gate — в каталог, где живёт сам хук (может быть
+# каталог шаблона или governance-репо). Жёсткий "$IWE/.claude/logs/..." находил
+# только одну раскладку и показывал «не найден» на остальных.
+# Precedence (первый СУЩЕСТВУЮЩИЙ файл):
+#   1. $IWE_DS_MY_STRATEGY/.claude/logs/gate_log.jsonl (явный override пилота)
+#   2. <workspace>/<governance>/.claude/logs/gate_log.jsonl — governance-репо
+#      определяется как первый каталог первого уровня с current/DayPlan*.md;
+#      если таких нет — ${IWE_GOVERNANCE_REPO:-DS-strategy}
+#   3. <workspace>/.claude/logs/gate_log.jsonl (legacy-раскладка хуков)
+#   4. <template>/.claude/logs/gate_log.jsonl (хук живёт в каталоге шаблона)
+# Если ни один не существует — печатается кандидат п.2 (или п.1 при заданном
+# override): «не найден» должен указывать туда, где лог ожидается, а не в
+# захардкоженную раскладку.
+iwe_gate_log() {
+  local ws="${1:-${IWE_WORKSPACE:-${IWE_ROOT:-}}}"
+  local candidates=()
+
+  if [ -n "${IWE_DS_MY_STRATEGY:-}" ]; then
+    candidates+=("$IWE_DS_MY_STRATEGY/.claude/logs/gate_log.jsonl")
+  fi
+
+  local gov=""
+  if [ -n "$ws" ] && [ -d "$ws" ]; then
+    local d
+    for d in "$ws"/*/current; do
+      [ -d "$d" ] || continue
+      if ls "$d"/DayPlan*.md >/dev/null 2>&1; then
+        gov="${d%/current}"
+        break
+      fi
+    done
+    [ -n "$gov" ] || gov="$ws/$(iwe_resolve_governance_repo)"
+    candidates+=("$gov/.claude/logs/gate_log.jsonl")
+    candidates+=("$ws/.claude/logs/gate_log.jsonl")
+  fi
+
+  # Каталог шаблона: этот lib живёт в <template>/scripts/lib/common.sh.
+  local template_dir
+  template_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd -P) \
+    || template_dir=""
+  if [ -n "$template_dir" ] && [ -f "$template_dir/update-manifest.json" ]; then
+    candidates+=("$template_dir/.claude/logs/gate_log.jsonl")
+  fi
+
+  local c
+  for c in "${candidates[@]:-}"; do
+    [ -n "$c" ] && [ -f "$c" ] && { printf '%s\n' "$c"; return 0; }
+  done
+
+  if [ "${#candidates[@]}" -gt 0 ]; then
+    printf '%s\n' "${candidates[0]}"
+  else
+    printf '%s\n' "$ws/.claude/logs/gate_log.jsonl"
+  fi
+}

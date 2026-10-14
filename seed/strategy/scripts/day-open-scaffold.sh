@@ -1085,7 +1085,11 @@ INCEOF
   fi
 
   # gate_log активность (Ф1 проверка)
-  local gate_log="$IWE/.claude/logs/gate_log.jsonl"
+  # Устойчивый резолв: хуки в разных установках пишут лог в governance-репо,
+  # в корень workspace или в каталог шаблона — iwe_gate_log перебирает все
+  # раскладки (раньше жёстко смотрели $IWE/.claude/logs и лог «не находился»).
+  local gate_log
+  gate_log=$(iwe_gate_log "$IWE")
   if [ -f "$gate_log" ]; then
     local recent
     recent=$(awk -v d="$DATE" '$0 ~ d' "$gate_log" 2>/dev/null | wc -l | tr -d ' ')
