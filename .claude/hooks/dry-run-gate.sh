@@ -29,6 +29,24 @@ TTL_SECONDS=2400
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IWE_ROOT_GUESS="$(cd "$HOOK_DIR/../.." 2>/dev/null && pwd -P)"
 GATE_LOG="$IWE_ROOT_GUESS/.claude/logs/gate_log.jsonl"
+# Резолв через общий iwe_gate_log (писатели = читатели) — но только внутрь
+# IWE_ROOT_GUESS (контракт хука: писать рядом с собой; тесты/нестандартные
+# раскладки не должны утекать в чужой корень). Фолбэк без изменений, если lib
+# недоступен — хук не должен падать из-за наблюдательного лога.
+for _gl_lib in "${IWE_SCRIPTS:-}/lib/common.sh" "$HOOK_DIR/../../scripts/lib/common.sh"; do
+  if [ -n "$_gl_lib" ] && [ -f "$_gl_lib" ]; then
+    # shellcheck disable=SC1090
+    if . "$_gl_lib" 2>/dev/null; then
+      _gl_resolved="$(iwe_gate_log "$IWE_ROOT_GUESS" 2>/dev/null || true)"
+      case "$_gl_resolved" in
+        "$IWE_ROOT_GUESS"/*) GATE_LOG="$_gl_resolved" ;;
+      esac
+      unset _gl_resolved
+    fi
+    break
+  fi
+done
+unset _gl_lib
 
 # issue #549 stage 2: каноническая запись состояния репетиции (redesign).
 # Sentinel остаётся маркером активного режима (на него завязана whitelist-

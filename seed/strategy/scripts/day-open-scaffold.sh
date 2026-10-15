@@ -1090,6 +1090,13 @@ INCEOF
   # раскладки (раньше жёстко смотрели $IWE/.claude/logs и лог «не находился»).
   local gate_log
   gate_log=$(iwe_gate_log "$IWE")
+  if [ ! -f "$gate_log" ]; then
+    # issue #1124 форка: клиентские хуки в Kimi Code CLI не исполняются — лог
+    # никто не создаёт, и светофор вечно «не найден». Инициализируем
+    # детерминированно; событие честно маркирует происхождение (detail).
+    iwe_gate_log_event "day-open-scaffold" "log_initialized" "client hooks inactive (Kimi CLI) — scaffold init"
+    gate_log=$(iwe_gate_log "$IWE")
+  fi
   if [ -f "$gate_log" ]; then
     local recent
     recent=$(awk -v d="$DATE" '$0 ~ d' "$gate_log" 2>/dev/null | wc -l | tr -d ' ')

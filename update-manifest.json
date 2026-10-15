@@ -77,7 +77,7 @@
     },
     {
       "path": ".claude/hooks/dry-run-gate.sh",
-      "sha256": "82a913079269ada31321c035674f40c390819fc95a7332f951b431ccd2e7f481"
+      "sha256": "9cfc24d1dd7d2c9206d6c209f8af26e0e3faa6f44e84c9f61ec4f89a67a098f8"
     },
     {
       "path": ".claude/hooks/extensions-gate.sh",
@@ -129,7 +129,7 @@
     },
     {
       "path": ".claude/hooks/protocol-stop-gate.sh",
-      "sha256": "dcde39291460aa143c0f81d0a04107477790e1e7b6b1aa6cd65d7487cceea278"
+      "sha256": "a25b314b2787b195019a74ee00941ffadf9a4fa3f0a94a108bfaabf6b8c13de1"
     },
     {
       "path": ".claude/hooks/pull-on-touch.sh",
@@ -1041,7 +1041,7 @@
     },
     {
       "path": "docs/release-audit-log.md",
-      "sha256": "b11a6d9a17af1a840462009ab7fab6e33f8b45cd86eda1fca7b40fae6e30ff22"
+      "sha256": "ac39c76e5f7f8f422ca724fc37e96f916f231aba46981c1ed7557ec78715989c"
     },
     {
       "path": "docs/roles-catalog.md",
@@ -2297,7 +2297,7 @@
     },
     {
       "path": "scripts/day-open-scaffold.sh",
-      "sha256": "e4efa6cdb0caccb1937a72eeb6d279f44acb4731c1aaba54cdff953585ec59bb"
+      "sha256": "c640420d2c0a9f7675c569b087b952fccecd41e9e4318283ff9339fbf715e423"
     },
     {
       "path": "scripts/day-open-smoke-extended.sh",
@@ -2485,7 +2485,7 @@
     },
     {
       "path": "scripts/lib/common.sh",
-      "sha256": "c4b142c70233b9ddce23db8f6b853c8876fe9c31e4c4d8e40f651707a043c1fc"
+      "sha256": "61f9432de7e0e92ee56e9eb3d5a0d0139a425276c048dbd87328f8d028f273db"
     },
     {
       "path": "scripts/lib/day-open-hooks.sh",
@@ -3057,7 +3057,7 @@
     },
     {
       "path": "seed/strategy/scripts/day-open-scaffold.sh",
-      "sha256": "0fe1487b1e9ce8868a023a23dcbacae2441ab4052aeeee4b2e338e74eeb1bee2"
+      "sha256": "e6da56e91d2184515cb3c081d70286b84864cb9cbc0d5237bd7a737b18cb4a67"
     },
     {
       "path": "seed/strategy/scripts/day-open-version-check-patch.py",
@@ -3153,7 +3153,7 @@
     },
     {
       "path": "setup/install-iwe-paths.sh",
-      "sha256": "06136873a0a83f56bb0a6b0e34b10f9486c283a77c7295f58b7db9d7e1b86a50"
+      "sha256": "b714c6f30629eea1006afb20c9aec629b1ee01687370fbee8f9dcd579b5675cf"
     },
     {
       "path": "setup/optional/setup-cloud-scheduler.sh",

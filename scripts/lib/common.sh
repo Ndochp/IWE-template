@@ -499,3 +499,22 @@ iwe_gate_log() {
     printf '%s\n' "$ws/.claude/logs/gate_log.jsonl"
   fi
 }
+
+# iwe_gate_log_event <gate> <event> <detail> — канонический ПИСАТЕЛЬ gate_log.jsonl.
+# Путь резолвится тем же iwe_gate_log, что читают светофор Day Open и
+# behaviour-report, — писатели и читатели сходятся в одном файле независимо от
+# раскладки установки (раньше каждый хук писал в своё место: template-контур,
+# корень workspace — читатель их перебирал, но новые файлы плодились разрозненно).
+# Дополнительно: клиентские хуки (Claude Code) могут не исполняться вообще
+# (Kimi Code CLI, issue #1124 форка) — тогда лог инициализируют детерминированные
+# писатели конвейера (day-open-scaffold), иначе светофор вечно «не найден».
+# Fail-soft: любая ошибка записи глотается (лог — наблюдатель, не gate).
+iwe_gate_log_event() {
+  local gate="$1" event="$2" detail="${3:-}"
+  local log_path
+  log_path=$(iwe_gate_log) || return 0
+  mkdir -p "$(dirname "$log_path")" 2>/dev/null || return 0
+  printf '{"ts":"%s","gate":"%s","event":"%s","detail":"%s"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$gate" "$event" "$detail" \
+    >> "$log_path" 2>/dev/null || true
+}

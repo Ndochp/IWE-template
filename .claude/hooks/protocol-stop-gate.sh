@@ -170,6 +170,20 @@ CLAUDE_DIR="$(cd "$HOOK_DIR/.." && pwd)"
 # shellcheck source=../lib/iwe-env-bootstrap.sh
 source "$CLAUDE_DIR/lib/iwe-env-bootstrap.sh" || exit 1
 GATE_LOG="$IWE_ROOT/.claude/logs/gate_log.jsonl"
+# Резолв через общий iwe_gate_log (писатели = читатели: светофор Day Open,
+# behaviour-report) — НО только если резолв указывает внутрь $IWE_ROOT:
+# контракт хука — писать в корень, который передал клиент (тесты и нестандартные
+# раскладки изолируются через IWE_ROOT). Иначе — дефолтный путь как раньше.
+if [ -f "${IWE_SCRIPTS:-}/lib/common.sh" ]; then
+  # shellcheck disable=SC1090
+  if . "$IWE_SCRIPTS/lib/common.sh" 2>/dev/null; then
+    _gl_resolved="$(iwe_gate_log "$IWE_ROOT" 2>/dev/null || true)"
+    case "$_gl_resolved" in
+      "$IWE_ROOT"/*) GATE_LOG="$_gl_resolved" ;;
+    esac
+    unset _gl_resolved
+  fi
+fi
 mkdir -p "$(dirname "$GATE_LOG")" 2>/dev/null || true
 
 # --- Шаг 1: был ли вызов протокольного скилла? ---
