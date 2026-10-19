@@ -3,7 +3,7 @@
 Перед началом работы — напомнить себе о паттернах косяков:
 
 ```bash
-IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$IWE_WORKSPACE}}"
+IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$HOME/IWE}}"
 IWE_PLATFORM_SCRIPTS="${IWE_SCRIPTS:-${IWE_TEMPLATE:-$IWE_ROOT/FMT-exocortex-template}/scripts}"
 python3 "$IWE_PLATFORM_SCRIPTS/agent-fault/iwe_checklist_memory.py" remind \
   --protocol work --limit 3 \

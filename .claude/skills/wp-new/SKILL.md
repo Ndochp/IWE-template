@@ -113,7 +113,7 @@ gates_rationale: "операционный скилл; WP Gate применим 
 
 **Синтаксис скрипта:**
 ```bash
-touch "${IWE_ROOT:-$IWE_WORKSPACE}/.claude/state/wp-consent-{N}"   # WP Gate — обязательно перед запуском (тот же путь, что проверяет create-wp.sh, — НЕ ~/.claude, issue #556)
+touch "${IWE_ROOT:-$HOME/IWE}/.claude/state/wp-consent-{N}"   # WP Gate — обязательно перед запуском (тот же путь, что проверяет create-wp.sh, — НЕ ~/.claude, issue #556)
 bash "$IWE_SCRIPTS/create-wp.sh" \
   --artifactor-result "$STATE_DIR/artifactor-result-{slug}.json" \  # результат Шага 1, обязателен всегда
   --budget 5h \

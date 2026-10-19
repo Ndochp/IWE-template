@@ -56,9 +56,9 @@ Month Close = протокол. Исполнять ТОЛЬКО пошагово
 **1b. Коммиты за месяц.**
 
 ```bash
-for repo in $(ls $IWE_WORKSPACE/); do
-  if [ -d $IWE_WORKSPACE/$repo/.git ]; then
-    count=$(git -C $IWE_WORKSPACE/$repo log --since="$MONTH_START" --until="$MONTH_END" --oneline --no-merges 2>/dev/null | wc -l)
+for repo in $(ls ${IWE_WORKSPACE:-$HOME/IWE}/); do
+  if [ -d ${IWE_WORKSPACE:-$HOME/IWE}/$repo/.git ]; then
+    count=$(git -C ${IWE_WORKSPACE:-$HOME/IWE}/$repo log --since="$MONTH_START" --until="$MONTH_END" --oneline --no-merges 2>/dev/null | wc -l)
     [ "$count" -gt 0 ] && echo "$repo: $count"
   fi
 done
@@ -66,15 +66,15 @@ done
 
 **1c. Week Report'ы месяца.** Собрать `current/Report W{N}.md` за 4-5 недель → список закрытых/перенесённых РП, мультипликаторы, ТОС недель.
 
-**1d. Drift месячный.** `bash ${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/iwe-drift.sh` → выявить пары, где lag вырос за месяц.
+**1d. Drift месячный.** `bash ${IWE_SCRIPTS:-$HOME/IWE/scripts}/iwe-drift.sh` → выявить пары, где lag вырос за месяц.
 
 **1e. Decision log.** Канонический файл: `${IWE_GOVERNANCE_REPO:-DS-strategy}/decisions/decision-log-YYYY-MM.md` (WP-109 Ф7, один файл на месяц). Перед чтением выполнить совместимую миграцию: если канонического файла нет, но существует `${IWE_GOVERNANCE_REPO:-DS-strategy}/exocortex/decisions/decision-log-YYYY-MM.md`, создать `decisions/` и переместить старый файл; если существуют оба, не объединять и не перезаписывать молча, сообщить пилоту о расхождении и читать канонический. Если файла нет или в нём нет записей месяца, зафиксировать «решения за месяц не зарегистрированы» и продолжить; отсутствие файла на пустом месяце не является ошибкой Month Close.
 
 **1f. Метрики файлов memory (WP-217 Ф10.2).**
 
 ```bash
-bash ${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/memory-health.sh
-bash ${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/memory-bleed.sh
+bash ${IWE_SCRIPTS:-$HOME/IWE/scripts}/memory-health.sh
+bash ${IWE_SCRIPTS:-$HOME/IWE/scripts}/memory-bleed.sh
 ```
 
 HOT-лимит превышен → понизить horizon в frontmatter нужных файлов ДО дальнейших шагов. Кандидаты на понижение из bleed-отчёта → зафиксировать в `MonthClose YYYY-MM.md § T-чеклист T23`.
@@ -119,7 +119,7 @@ HOT-лимит превышен → понизить horizon в frontmatter ну
 
 Открыть `memory/r-questionnaire.md` → раздел «Month Close — 6 доп. вопросов» → ответить последовательно (M1-M6).
 
-**Особый статус M6 (decommission):** ответ = список T-действий на перевод в dormant/archived. Агент перед вопросом запускает `bash ${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/iwe-drift.sh` + читает `sync-manifest.yaml § activity_checks:` → предъявляет кандидатов.
+**Особый статус M6 (decommission):** ответ = список T-действий на перевод в dormant/archived. Агент перед вопросом запускает `bash ${IWE_SCRIPTS:-$HOME/IWE/scripts}/iwe-drift.sh` + читает `sync-manifest.yaml § activity_checks:` → предъявляет кандидатов.
 
 Время: 20-30 мин.
 
@@ -137,7 +137,7 @@ HOT-лимит превышен → понизить horizon в frontmatter ну
 
 Для каждого кандидата из Шага 5 M6:
 1. Проверить: действие имеет измеримый след (entry в `sync-manifest.yaml § activity_checks:`)? Если нет — дополнить manifest перед решением.
-2. Фактическая частота за 3 окна: `bash ${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/iwe-drift.sh --activity` → счётчик.
+2. Фактическая частота за 3 окна: `bash ${IWE_SCRIPTS:-$HOME/IWE/scripts}/iwe-drift.sh --activity` → счётчик.
 3. Решение человека:
    - **active → dormant:** переместить в секцию «Спящие действия» соответствующего чеклиста, пометить `dormant_from: YYYY-MM-DD`
    - **dormant → archived:** перенести в `${IWE_GOVERNANCE_REPO:-DS-strategy}/archive/retired-actions.md` с причиной
@@ -172,7 +172,7 @@ HOT-лимит превышен → понизить horizon в frontmatter ну
 ### 11. Коммит ${IWE_GOVERNANCE_REPO:-DS-strategy}
 
 ```bash
-(cd $IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}
+(cd ${IWE_WORKSPACE:-$HOME/IWE}/${IWE_GOVERNANCE_REPO:-DS-strategy}
 # НЕ `git add -A`: в общем клоне (multi-agent) сметает чужое pre-staged → mis-attribution
 # (см. sessions/2026-06/2026-06-20-39-*). Перечисли артефакты month-close ЯВНО:
 MONTH_FILES=(

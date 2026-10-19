@@ -41,7 +41,7 @@ gates_rationale: "операционный скилл; WP Gate применим 
 Путь резолвится через env, дефолт — `extensions/local-llm/` внутри IWE-установки:
 
 ```bash
-BUNDLE="${IWE_LOCAL_LLM_DIR:-$IWE_WORKSPACE/extensions/local-llm}"
+BUNDLE="${IWE_LOCAL_LLM_DIR:-$HOME/IWE/extensions/local-llm}"
 ```
 
 - venv стека: `~/.iwe-local-llm/.venv` (ставит установщик).
@@ -91,8 +91,8 @@ bash "$BUNDLE/iwe-local-llm.sh" archive <model-id># вывести в архив
 ### Шаг 4 — мониторинг новых моделей (суждение → LLM-работа)
 
 ```bash
-BUNDLE="${IWE_LOCAL_LLM_DIR:-$IWE_WORKSPACE/extensions/local-llm}"
-PY3="$(bash "${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/lib/find-python3.sh")" && "$PY3" "$BUNDLE/model-monitor.py"    # дайджест трендовых моделей, которых нет в каталоге
+BUNDLE="${IWE_LOCAL_LLM_DIR:-$HOME/IWE/extensions/local-llm}"
+PY3="$(bash "${IWE_SCRIPTS:-$HOME/IWE/scripts}/lib/find-python3.sh")" && "$PY3" "$BUNDLE/model-monitor.py"    # дайджест трендовых моделей, которых нет в каталоге
 ```
 
 Монитор только **находит** кандидатов. Решение об adopt — суждение агента (это и есть LLM-работа, ради которой скилл существует):

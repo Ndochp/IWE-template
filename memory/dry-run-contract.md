@@ -107,10 +107,10 @@ Whitelist read-only helpers (issue #264) — разрешены под dry-run, 
 
 ```
 .claude/scripts/load-extensions.sh                    # относительный, от workspace-root
-{{WORKSPACE_DIR}}/.claude/scripts/load-extensions.sh          # абсолютный, захардкожен
+$HOME/IWE/.claude/scripts/load-extensions.sh          # абсолютный, захардкожен
 scripts/day-close-prepare.sh                          # относительный (issue #315) — рабочий,
                                                         # только если CWD внутри FMT-exocortex-template
-${IWE_SCRIPTS:-$IWE_WORKSPACE/scripts}/day-close-prepare.sh # абсолютный (нестатический — реальный вложенный
+${IWE_SCRIPTS:-$HOME/IWE/scripts}/day-close-prepare.sh # абсолютный (нестатический — реальный вложенный
                                                         # путь резолвится через $IWE_SCRIPTS, issue #315)
 "$IWE_SCRIPTS/day-close-prepare.sh"                    # реальная документированная форма (день. вызов
                                                         # из day-close/SKILL.md) — маркер __WL_DAY_CLOSE_PREPARE__
@@ -138,7 +138,7 @@ allow, глотая command substitution маркером раньше, чем �
 исполняющий агент подставляет реальный путь при формировании Bash-вызова — тот
 же принцип, что у уже существующего `WL_ABS`/`WL_ABS2` (bash-whitelist).
 
-Абсолютный паттерн захардкожен в `$IWE_WORKSPACE`, не glob `*/.claude/...` и не
+Абсолютный паттерн захардкожен в `$HOME/IWE`, не glob `*/.claude/...` и не
 `$IWE_ROOT` — иначе подложный `/tmp/.claude/scripts/load-extensions.sh` или
 env-инъекция `IWE_ROOT=/tmp/evil` прошли бы gate (review-01 High, review-02 H1).
 Пользователи с нестандартным расположением workspace вызывают helper

@@ -9,7 +9,7 @@
 
 set -eu
 
-IWE_WORKSPACE="${IWE_WORKSPACE:-${WORKSPACE_DIR:-}}"
+IWE_WORKSPACE="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$HOME/IWE}}"
 REPORTS_DIR="${IWE_WORKSPACE}/${GOVERNANCE_REPO}/inbox/extraction-reports"
 
 # Count extraction-reports with status: pending-review

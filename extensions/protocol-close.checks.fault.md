@@ -3,7 +3,7 @@
 Запустить перед проверками — чтобы не пропустить шаги с историей пропусков:
 
 ```bash
-IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$IWE_WORKSPACE}}"
+IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$HOME/IWE}}"
 IWE_PLATFORM_SCRIPTS="${IWE_SCRIPTS:-${IWE_TEMPLATE:-$IWE_ROOT/FMT-exocortex-template}/scripts}"
 python3 "$IWE_PLATFORM_SCRIPTS/agent-fault/iwe_checklist_memory.py" remind \
   --protocol close \
@@ -15,7 +15,7 @@ python3 "$IWE_PLATFORM_SCRIPTS/agent-fault/iwe_checklist_memory.py" remind \
 
 > Если в этой сессии обнаружен новый паттерн косяка — добавить feedback-файл в `memory/`, затем:
 > ```bash
-> IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-}}"
+> IWE_ROOT="${IWE_WORKSPACE:-${WORKSPACE_DIR:-$HOME/IWE}}"
 > IWE_PLATFORM_SCRIPTS="${IWE_SCRIPTS:-${IWE_TEMPLATE:-$IWE_ROOT/FMT-exocortex-template}/scripts}"
 > python3 "$IWE_PLATFORM_SCRIPTS/sync_feedback_to_memory.py"
 > ```

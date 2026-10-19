@@ -16,7 +16,7 @@
 
 ```bash
 # Проверить наличие skill
-SKILL="$IWE_WORKSPACE/.claude/skills/month-close/SKILL.md"
+SKILL="${IWE_WORKSPACE:-$HOME/IWE}/.claude/skills/month-close/SKILL.md"
 if [ -f "$SKILL" ]; then
   # Делегировать выполнение skill /month-close
   echo "Делегирую в skills/month-close/SKILL.md"

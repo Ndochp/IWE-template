@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# LOCAL-PATCH (fork Ndochp/IWE-template): day_boundary 04:30 — issue #924;
-# одобрено пилотом 25.09, восстановлено в форке 07.10 (деплой v0.41.7 затёр
-# несохранённую пользовательскую копию). Снимается, когда апстрим закроет #924.
 # routing: helper  skill=day-open  called-by=haiku  deterministic=true
 # see DP.SC.159, DP.ROLE.059
 # day-open-scaffold.sh — детерминированная генерация скелета DayPlan
@@ -47,6 +44,60 @@ IWE_ROOT="$IWE"
 export IWE_ROOT IWE
 DATE="${1:-$(date +%Y-%m-%d)}"
 CONFIG="$IWE/memory/day-rhythm-config.yaml"
+# issue #1149: the path is pasted into Python source text, and Git Bash converts
+# `/c/Users/...` only in command-line ARGUMENTS, not inside `-c "..."` code. Windows
+# Python then cannot open it and every config-driven section falls back to defaults.
+CONFIG_PY="$CONFIG"
+if command -v cygpath >/dev/null 2>&1; then
+  CONFIG_PY=$(cygpath -m "$CONFIG" 2>/dev/null || printf '%s' "$CONFIG")
+fi
+
+# issue #924: day_boundary ("HH:MM", default none = no shift) lets the pilot say
+# that work done after midnight but before this hour still belongs to the day
+# that's ending, not a new one. Only the auto "today" default is a candidate —
+# an explicit date argument is the caller's exact choice and is never
+# second-guessed (mirrors the same check in day-open-pipeline.sh, issue #924).
+# Scoped to the day_open: block (same precaution as STRATEGY_DAY_NAME in
+# day-open-pipeline.sh — a same-named key elsewhere can't hijack this lookup;
+# resets on the next top-level key so a later block's own day_boundary can't
+# be picked up either) and skips commented-out lines: a bare top-level grep
+# would also match the shipped default's commented-out example line,
+# silently turning the shift on. Read for any date: the commit window of
+# "yesterday" follows the boundary even when the date is given explicitly.
+DAY_BOUNDARY=$(awk '
+  /^[^[:space:]]/ && !/^day_open:/ { f=0 }
+  /^day_open:/ { f=1 }
+  f && /day_boundary:/ && !/^[[:space:]]*#/ { print; exit }
+' "$CONFIG" 2>/dev/null \
+  | sed -E 's/.*day_boundary:[[:space:]]*"?([0-9]{1,2}:[0-9]{2})"?.*/\1/')
+if [ -z "${1:-}" ] && [[ "$DAY_BOUNDARY" =~ ^([0-9]{1,2}):([0-9]{2})$ ]]; then
+  boundary_min=$(( 10#${BASH_REMATCH[1]} * 60 + 10#${BASH_REMATCH[2]} ))
+  now_min=$(( 10#$(date +%H) * 60 + 10#$(date +%M) ))
+  if [ "$now_min" -lt "$boundary_min" ]; then
+    DATE=$(date -j -v-1d -f "%Y-%m-%d" "$DATE" "+%Y-%m-%d" 2>/dev/null \
+      || date -d "$DATE - 1 day" "+%Y-%m-%d" 2>/dev/null)
+  fi
+fi
+
+# issue #924: the day boundary also decides which commits belong to "yesterday".
+# Half-open window [YDAY <boundary>, DATE <boundary>) as "SINCE|UNTIL" for
+# `git log`: a commit exactly at the boundary opens the new day, none is counted
+# twice. No boundary (or 00:00) keeps the calendar day. KEEP IN SYNC with the
+# copy in day-open-pipeline.sh / day-open-scaffold.sh (test_issue_924 compares them).
+iwe_day_window() {
+  local yday="$1" today="$2" b="${3:-}" bm=0 em
+  if [[ "$b" =~ ^([0-9]{1,2}):([0-9]{2})$ ]]; then
+    bm=$(( 10#${BASH_REMATCH[1]} * 60 + 10#${BASH_REMATCH[2]} ))
+  fi
+  if [ "$bm" -eq 0 ]; then
+    printf '%s 00:00:00|%s 23:59:59' "$yday" "$yday"
+    return 0
+  fi
+  em=$(( bm - 1 ))
+  printf '%s %02d:%02d:00|%s %02d:%02d:59' \
+    "$yday" $(( bm / 60 )) $(( bm % 60 )) "$today" $(( em / 60 )) $(( em % 60 ))
+}
+
 PARAMS_FILE="$IWE/params.yaml"
 MULTIPLIER_ENABLED="true"
 if [ -f "$PARAMS_FILE" ] && grep -qE '^multiplier_enabled:[[:space:]]*false([[:space:]]*(#.*)?)?$' "$PARAMS_FILE"; then
@@ -91,27 +142,6 @@ else
   YDAY=$(date -d "$DATE - 1 day" "+%Y-%m-%d" 2>/dev/null)
   YDAY_NUM=$(date -d "$DATE - 1 day" "+%-d" 2>/dev/null)
   YDAY_MNUM=$(date -d "$DATE - 1 day" "+%-m" 2>/dev/null)
-fi
-
-# LOCAL-PATCH (issue #924): смена суток в day_boundary (04:30), не в 00:00.
-# «Вчера» — по бизнес-суткам: если сейчас раньше границы и DATE = сегодня,
-# вчерашний день ещё не закрыт, бизнес-вчера = календарное позавчера.
-# Интервал сбора коммитов «Итогов вчера» тоже сдвигается на границу (ниже).
-if [ -f "$CONFIG" ]; then
-  BOUNDARY=$(grep -m1 '^day_boundary:' "$CONFIG" 2>/dev/null | sed 's/[^0-9:]//g')
-fi
-BOUNDARY="${BOUNDARY:-04:30}"
-case "$BOUNDARY" in ??":"??) ;; *) BOUNDARY="04:30" ;; esac
-if [[ "$(date +%H:%M)" < "$BOUNDARY" && "$DATE" == "$(date +%Y-%m-%d)" ]]; then
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    YDAY=$(date -j -v-2d -f "%Y-%m-%d" "$DATE" "+%Y-%m-%d" 2>/dev/null || echo "$YDAY")
-    YDAY_NUM=$(date -j -v-2d -f "%Y-%m-%d" "$DATE" "+%-d" 2>/dev/null || echo "$YDAY_NUM")
-    YDAY_MNUM=$(date -j -v-2d -f "%Y-%m-%d" "$DATE" "+%-m" 2>/dev/null || echo "$YDAY_MNUM")
-  else
-    YDAY=$(date -d "$DATE - 2 days" "+%Y-%m-%d" 2>/dev/null || echo "$YDAY")
-    YDAY_NUM=$(date -d "$DATE - 2 days" "+%-d" 2>/dev/null || echo "$YDAY_NUM")
-    YDAY_MNUM=$(date -d "$DATE - 2 days" "+%-m" 2>/dev/null || echo "$YDAY_MNUM")
-  fi
 fi
 
 DOW_NAMES=("" "Понедельник" "Вторник" "Среда" "Четверг" "Пятница" "Суббота" "Воскресенье")
@@ -176,7 +206,7 @@ def flatten(d, prefix=''):
 # indistinguishable. Emit an explicit ok/error sentinel instead (bug-2026-06-05,
 # bug-2026-06-09, bug-2026-07-04).
 try:
-    with open('$CONFIG') as f:
+    with open('$CONFIG_PY', encoding='utf-8') as f:
         d = yaml.safe_load(f) or {}
     for k, v in flatten(d):
         print(k + '\x1f' + v)
@@ -248,11 +278,24 @@ extract_day_close_carry_over() {
   # 2. Yesterday DayPlan archive: section "Завтра начать с"
   local ydayplan="$IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}/archive/day-plans/DayPlan ${yday}.md"
   if [ -f "$ydayplan" ]; then
+    # issue #1149: the LAST heading-like "Завтра начать с" opens the section (an
+    # earlier mention in the body is not the handoff list); the section ends at
+    # the next heading, </details>, a rule, or the closing footer line.
     carry_over=$(awk '
-      /Завтра начать с/ { found=1; next }
-      found && /^## / { exit }
-      found && /^<\/details>/ { exit }
-      found { print }
+      { lines[NR] = $0 }
+      /^(#+[[:space:]]+|\*\*)[[:space:]]*Завтра начать с/ { strict = NR }
+      /^[[:space:]]*(-[[:space:]]+)?Завтра начать с/ { lead = NR }
+      /Завтра начать с/ { loose = NR }
+      END {
+        start = strict > lead ? strict : lead
+        if (!start) start = loose
+        if (!start) exit
+        for (i = start + 1; i <= NR; i++) {
+          l = lines[i]
+          if (l ~ /^#+[[:space:]]/ || l ~ /^<\/details>/ || l ~ /^---[[:space:]]*$/ || l ~ /^\*(Закрыто|Создан)/) break
+          print l
+        }
+      }
     ' "$ydayplan" | sed '/^$/d' | head -10)
     if [ -n "$carry_over" ]; then
       echo "$carry_over"
@@ -336,7 +379,7 @@ extract_mandatory_daily_wps() {
   "$_RESOLVED_PYTHON3" -c "
 import yaml, sys
 try:
-    with open('$CONFIG') as f:
+    with open('$CONFIG_PY', encoding='utf-8') as f:
         d = yaml.safe_load(f) or {}
     items = d.get('mandatory_daily_wps') or []
     for item in items:
@@ -695,11 +738,26 @@ render_repo_activity() {
   since=$(date -v-2d +%Y-%m-%d 2>/dev/null || date -d "2 days ago" +%Y-%m-%d 2>/dev/null)
   [ -z "$since" ] && { echo "_не удалось вычислить дату фильтра — пропуск._"; return; }
   out="| Репозиторий | Коммитов (2д) | Последний |\n|---|---|---|\n"
+  # issue #1131: `cut -c1-50` counts bytes under the C/POSIX locale (launchd's
+  # EnvironmentVariables carry no LANG/LC_*) and can split a multibyte UTF-8
+  # character mid-sequence, corrupting the whole scaffold file for every
+  # downstream reader. Resolved once here, not inside the loop (same
+  # rationale as the find-python3.sh resolution elsewhere in this file).
+  local _resolved_python3
+  _resolved_python3=$("$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/find-python3.sh" --stdlib-only 2>/dev/null) || _resolved_python3=""
   while IFS= read -r repo; do
     slug=$(basename "$repo")
     n=$(git -C "$repo" log --since="$since 00:00:00" --oneline 2>/dev/null | wc -l | tr -d ' ')
     [ "${n:-0}" -eq 0 ] && continue
-    last=$(git -C "$repo" log -1 --format='%s' 2>/dev/null | cut -c1-50)
+    if [ -n "$_resolved_python3" ]; then
+      last=$(git -C "$repo" log -1 --format='%s' 2>/dev/null | "$_resolved_python3" -c "
+import sys
+line = sys.stdin.buffer.readline().decode('utf-8', errors='replace').rstrip('\n')
+print(line if len(line) <= 50 else line[:50] + '…')
+")
+    else
+      last=$(git -C "$repo" log -1 --format='%s' 2>/dev/null | cut -c1-50)
+    fi
     out="${out}| ${slug} | ${n} | ${last} |\n"
     any=1
   done < <(iwe_repo_dirs "$IWE"/*/)
@@ -868,18 +926,13 @@ render_iwe_status() {
     echo "| LaunchAgents | ⚪ | launchctl недоступен |"
   fi
 
-  # template-sync (локальная копия шаблона; IWE-template инсталляция, legacy FMT-путь — fallback)
-  local tpl_dir="${IWE_TEMPLATE:-$IWE/IWE-template}"
-  if [ -d "$tpl_dir/.git" ]; then
-    local fmt_last
-    fmt_last=$(git -C "$tpl_dir" log -1 --format="%cr" 2>/dev/null || echo "?")
-    echo "| template-sync | 🟢 | ${tpl_dir##*/} last commit: $fmt_last |"
-  elif [ -d "$IWE/FMT-exocortex-template/.git" ]; then
+  # template-sync (FMT last commit)
+  if [ -d "$IWE/FMT-exocortex-template/.git" ]; then
     local fmt_last
     fmt_last=$(git -C "$IWE/FMT-exocortex-template" log -1 --format="%cr" 2>/dev/null || echo "?")
     echo "| template-sync | 🟢 | FMT last commit: $fmt_last |"
   else
-    echo "| template-sync | 🔴 | шаблон не найден ($tpl_dir) |"
+    echo "| template-sync | 🔴 | FMT не найден |"
   fi
 
   # Scout findings
@@ -1113,18 +1166,7 @@ INCEOF
   fi
 
   # gate_log активность (Ф1 проверка)
-  # Устойчивый резолв: хуки в разных установках пишут лог в governance-репо,
-  # в корень workspace или в каталог шаблона — iwe_gate_log перебирает все
-  # раскладки (раньше жёстко смотрели $IWE/.claude/logs и лог «не находился»).
-  local gate_log
-  gate_log=$(iwe_gate_log "$IWE")
-  if [ ! -f "$gate_log" ]; then
-    # issue #1124 форка: клиентские хуки в Kimi Code CLI не исполняются — лог
-    # никто не создаёт, и светофор вечно «не найден». Инициализируем
-    # детерминированно; событие честно маркирует происхождение (detail).
-    iwe_gate_log_event "day-open-scaffold" "log_initialized" "client hooks inactive (Kimi CLI) — scaffold init"
-    gate_log=$(iwe_gate_log "$IWE")
-  fi
+  local gate_log="$IWE/.claude/logs/gate_log.jsonl"
   if [ -f "$gate_log" ]; then
     local recent
     recent=$(awk -v d="$DATE" '$0 ~ d' "$gate_log" 2>/dev/null | wc -l | tr -d ' ')
@@ -1424,10 +1466,13 @@ render_attention() {
 
 # --- Section: Итоги вчера (commits stats + sessions) ---
 render_yesterday() {
-  local total=0 repos=0
+  local total=0 repos=0 window YDAY_SINCE YDAY_UNTIL
+  window=$(iwe_day_window "$YDAY" "$DATE" "$DAY_BOUNDARY")
+  YDAY_SINCE=${window%%|*}
+  YDAY_UNTIL=${window##*|}
   while IFS= read -r repo; do
     local n
-    n=$(git -C "$repo" log --since="$YDAY $BOUNDARY" --until="$DATE $BOUNDARY" --oneline 2>/dev/null | wc -l | tr -d ' ')
+    n=$(git -C "$repo" log --since="$YDAY_SINCE" --until="$YDAY_UNTIL" --oneline 2>/dev/null | wc -l | tr -d ' ')
     if [ "$n" -gt 0 ]; then
       total=$((total + n))
       repos=$((repos + 1))
@@ -1442,7 +1487,7 @@ render_yesterday() {
   # regardless of the grep below (bug 2026-07-02) — the else-branch then reports
   # "нет данных" honestly instead of letting the LLM invent a count.
   local dc_committed
-  dc_committed=$(cd "$IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}" && git log --since="$YDAY $BOUNDARY:00" -i \
+  dc_committed=$(cd "$IWE/${IWE_GOVERNANCE_REPO:-DS-strategy}" && git log --since="$YDAY_SINCE" -i \
     --grep="day-close.*$YDAY" --format=%H 2>/dev/null | head -1)
   # issue #929: same criterion as the pipeline race guard and extract_day_close_carry_over —
   # yesterday's archived DayPlan with the close sections. The commit-message wording is
@@ -1660,7 +1705,11 @@ IWE_STATUS_TABLE=$(render_iwe_status)
 WORLD_SECTION=$(render_world)
 
 # --- Output ---
-cat <<EOF
+# issue #496: heading style (details vs markdown) is a per-installation choice,
+# not a format migration — the validator already accepts both, so this only
+# changes what the generator prints, read from params.yaml.
+HEADING_STYLE=$(iwe_heading_style "$PARAMS_FILE")
+cat <<EOF | iwe_render_heading_style "$HEADING_STYLE"
 ---
 type: daily-plan
 date: $DATE

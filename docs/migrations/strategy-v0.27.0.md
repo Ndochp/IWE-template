@@ -30,7 +30,7 @@ Strategy Session теперь начинается с явной деклара�
 
 ## Альтернатива — попросить Claude
 
-Скажите: «Сравни мой `DS-strategy/docs/Strategy.md` с `$IWE_WORKSPACE/FMT-exocortex-template/seed/strategy/docs/Strategy.md` и предложи, какие блоки v0.27.0 добавить, не ломая мой существующий контент». Claude сделает diff и предложит точечные правки.
+Скажите: «Сравни мой `DS-strategy/docs/Strategy.md` с `~/IWE/FMT-exocortex-template/seed/strategy/docs/Strategy.md` и предложи, какие блоки v0.27.0 добавить, не ломая мой существующий контент». Claude сделает diff и предложит точечные правки.
 
 ## Что не нужно мигрировать
 

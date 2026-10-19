@@ -77,6 +77,19 @@ iwe_sha256() {
   fi
 }
 
+# iwe_md5 — md5 of stdin, printed alone (no filename column). Same GNU-first
+# rationale as iwe_sha256 (issue #1108): md5sum is coreutils (every Linux,
+# absent on macOS by default); BSD `md5` with no file argument reads stdin
+# and already prints just the bare hex digest (verified: no "MD5(-)=" prefix
+# the way `md5 -p`/named-file invocations add one), so it needs no awk/cut.
+iwe_md5() {
+  if command -v md5sum >/dev/null 2>&1; then
+    md5sum | awk '{print $1}'
+  else
+    md5
+  fi
+}
+
 # iwe_file_mtime_date FILE — дата YYYY-MM-DD без смешивания stdout двух
 # несовместимых stat-реализаций. GNU и BSD ветки выбираются явно (#300).
 iwe_file_mtime_date() {
@@ -419,6 +432,59 @@ iwe_calendar_source() {
   esac
 }
 
+# iwe_heading_style [PARAMS_FILE] — DayPlan/WeekPlan section heading style
+# (issue #496): details (default) uses <details><summary> per formatting.md
+# (collapsible in GitHub/VS Code); markdown uses `## ` headings instead
+# (readable in viewers that render HTML literally, e.g. Obsidian — the PR's
+# original complaint). A missing key or file means details, so existing
+# installs keep working; an unknown value warns on stderr and also means
+# details.
+iwe_heading_style() {
+  local file="${1:-}" value
+  [ -f "$file" ] || { echo details; return 0; }
+  value=$(grep -E '^dayplan_weekplan_heading_style:' "$file" 2>/dev/null | head -1 \
+    | sed -E 's/^dayplan_weekplan_heading_style:[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//; s/^["'"'"']//; s/["'"'"']$//')
+  case "$value" in
+    ''|details) echo details ;;
+    markdown) echo "$value" ;;
+    *)
+      # `${value}` not `$value` before the closing guillemet: bash's parameter-
+      # name scanner can swallow the first byte of a following multibyte UTF-8
+      # character as part of the variable name (found running this function
+      # under `set -u`: "value<replacement-char>: unbound variable" — the same
+      # unbraced pattern already exists in iwe_calendar_source above and is a
+      # pre-existing, separate latent bug there, not fixed here/out of scope).
+      echo "WARN: params.yaml: dayplan_weekplan_heading_style «${value}» неизвестно (details|markdown), использую details" >&2
+      echo details ;;
+  esac
+}
+
+# iwe_render_heading_style STYLE — filters stdin, converting DayPlan/WeekPlan
+# section headings between the two forms iwe_heading_style selects (issue
+# #496). `details` (the default) passes text through unchanged — the
+# validator (.claude/hooks/protocol-artifact-validate.sh Check 1) already
+# accepts both forms, so this is purely a rendering choice, not a format
+# migration. Only converts the two literal patterns producers actually emit:
+# `<summary><b>TEXT</b></summary>` and `<summary><strong>TEXT</strong></summary>`
+# (the latter used by the captures section) — `<details[ open]>`/`</details>`
+# lines are dropped in markdown mode since `## ` headings need no wrapper.
+iwe_render_heading_style() {
+  local style="${1:-details}"
+  if [ "$style" != markdown ]; then
+    cat
+    return 0
+  fi
+  # delimiter `|` (not `#`): the replacement text itself is a `## ` heading,
+  # which would terminate a `#`-delimited s/// before reaching the capture
+  # group (found running this function for the first time: `sed: bad flag in
+  # substitute command: '#'`).
+  sed -E \
+    -e '/^<details( open)?>[[:space:]]*$/d' \
+    -e '/^<\/details>[[:space:]]*$/d' \
+    -e 's|^<summary><b>(.*)</b></summary>[[:space:]]*$|## \1|' \
+    -e 's|^<summary><strong>(.*)</strong></summary>[[:space:]]*$|## \1|'
+}
+
 # iwe_scheduler_model KEY DEFAULT [PARAMS_FILE] — model alias for one
 # strategist background scenario (issue #1092), read from a flat params.yaml
 # key (e.g. scheduler_model_week_review). A missing key means DEFAULT, so
@@ -441,80 +507,43 @@ iwe_scheduler_model() {
   printf '%s\n' "$value"
 }
 
-# iwe_gate_log [WORKSPACE] — устойчивый резолв пути к .claude/logs/gate_log.jsonl
-# для ЧИТАТЕЛЕЙ (светофор Day Open, behaviour-report). Писатели (хуки) в разных
-# установках пишут в разные места: protocol-stop-gate — в $IWE_ROOT/.claude/logs
-# (= корень workspace), dry-run-gate — в каталог, где живёт сам хук (может быть
-# каталог шаблона или governance-репо). Жёсткий "$IWE/.claude/logs/..." находил
-# только одну раскладку и показывал «не найден» на остальных.
-# Precedence (первый СУЩЕСТВУЮЩИЙ файл):
-#   1. $IWE_DS_MY_STRATEGY/.claude/logs/gate_log.jsonl (явный override пилота)
-#   2. <workspace>/<governance>/.claude/logs/gate_log.jsonl — governance-репо
-#      определяется как первый каталог первого уровня с current/DayPlan*.md;
-#      если таких нет — ${IWE_GOVERNANCE_REPO:-DS-strategy}
-#   3. <workspace>/.claude/logs/gate_log.jsonl (legacy-раскладка хуков)
-#   4. <template>/.claude/logs/gate_log.jsonl (хук живёт в каталоге шаблона)
-# Если ни один не существует — печатается кандидат п.2 (или п.1 при заданном
-# override): «не найден» должен указывать туда, где лог ожидается, а не в
-# захардкоженную раскладку.
-iwe_gate_log() {
-  local ws="${1:-${IWE_WORKSPACE:-${IWE_ROOT:-}}}"
-  local candidates=()
-
-  if [ -n "${IWE_DS_MY_STRATEGY:-}" ]; then
-    candidates+=("$IWE_DS_MY_STRATEGY/.claude/logs/gate_log.jsonl")
+# iwe_timeout DURATION CMD [ARGS...] — portable `timeout`. Delegates to the
+# real timeout(1) when present (GNU coreutils on every Linux, Homebrew
+# coreutils on macOS); falls back to a perl polyfill when it's missing
+# (stock macOS with no Homebrew — issue #1006, re-found for a 4th call site
+# by #1108). Centralized here instead of a 4th inline copy-paste — three
+# scripts (roles/extractor/scripts/extractor.sh, scripts/active-wp-sweep.sh,
+# roles/strategist/scripts/strategist.sh) each still carry their own inline
+# copy of the #1006 fix predating this helper; left as-is (migrating them is
+# out of scope for #1108) but any new caller should use this instead of a
+# 5th copy. Same exit-code contract as GNU timeout: 124 on an actual
+# timeout, otherwise the child's own exit status (128+signal if the child
+# was killed by a signal, matching how the shell itself reports that case).
+iwe_timeout() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$@"
+    return $?
   fi
-
-  local gov=""
-  if [ -n "$ws" ] && [ -d "$ws" ]; then
-    local d
-    for d in "$ws"/*/current; do
-      [ -d "$d" ] || continue
-      if ls "$d"/DayPlan*.md >/dev/null 2>&1; then
-        gov="${d%/current}"
-        break
-      fi
-    done
-    [ -n "$gov" ] || gov="$ws/$(iwe_resolve_governance_repo)"
-    candidates+=("$gov/.claude/logs/gate_log.jsonl")
-    candidates+=("$ws/.claude/logs/gate_log.jsonl")
-  fi
-
-  # Каталог шаблона: этот lib живёт в <template>/scripts/lib/common.sh.
-  local template_dir
-  template_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd -P) \
-    || template_dir=""
-  if [ -n "$template_dir" ] && [ -f "$template_dir/update-manifest.json" ]; then
-    candidates+=("$template_dir/.claude/logs/gate_log.jsonl")
-  fi
-
-  local c
-  for c in "${candidates[@]:-}"; do
-    [ -n "$c" ] && [ -f "$c" ] && { printf '%s\n' "$c"; return 0; }
-  done
-
-  if [ "${#candidates[@]}" -gt 0 ]; then
-    printf '%s\n' "${candidates[0]}"
-  else
-    printf '%s\n' "$ws/.claude/logs/gate_log.jsonl"
-  fi
-}
-
-# iwe_gate_log_event <gate> <event> <detail> — канонический ПИСАТЕЛЬ gate_log.jsonl.
-# Путь резолвится тем же iwe_gate_log, что читают светофор Day Open и
-# behaviour-report, — писатели и читатели сходятся в одном файле независимо от
-# раскладки установки (раньше каждый хук писал в своё место: template-контур,
-# корень workspace — читатель их перебирал, но новые файлы плодились разрозненно).
-# Дополнительно: клиентские хуки (Claude Code) могут не исполняться вообще
-# (Kimi Code CLI, issue #1124 форка) — тогда лог инициализируют детерминированные
-# писатели конвейера (day-open-scaffold), иначе светофор вечно «не найден».
-# Fail-soft: любая ошибка записи глотается (лог — наблюдатель, не gate).
-iwe_gate_log_event() {
-  local gate="$1" event="$2" detail="${3:-}"
-  local log_path
-  log_path=$(iwe_gate_log) || return 0
-  mkdir -p "$(dirname "$log_path")" 2>/dev/null || return 0
-  printf '{"ts":"%s","gate":"%s","event":"%s","detail":"%s"}\n' \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$gate" "$event" "$detail" \
-    >> "$log_path" 2>/dev/null || true
+  local duration="$1"; shift
+  perl -e '
+      my $timeout = shift @ARGV;
+      my $timed_out = 0;
+      my $pid = fork();
+      if ($pid == 0) { exec @ARGV; die "exec failed: $!"; }
+      eval {
+          local $SIG{ALRM} = sub { $timed_out = 1; die "timeout\n"; };
+          alarm $timeout;
+          waitpid($pid, 0);
+          alarm 0;
+      };
+      if ($timed_out) {
+          kill "TERM", $pid;
+          select(undef, undef, undef, 0.5);
+          kill "KILL", $pid;
+          waitpid($pid, 0);
+          exit 124;
+      }
+      # A child ended by a signal reports 128+signal, like the shell does.
+      exit(($? & 127) ? 128 + ($? & 127) : ($? >> 8));
+  ' "$duration" "$@"
 }

@@ -27,7 +27,7 @@ source: peer-session 2026-05-27-02-bot-error-analysis
 
 ```bash
 GATEWAY_SOCKET="${IWE_GATEWAY_SOCKET:-$HOME/.iwe/gateway.sock}"
-REPO_LOCK_FILE="$IWE_WORKSPACE/<REPO>/.git/index"
+REPO_LOCK_FILE="$HOME/IWE/<REPO>/.git/index"
 
 _gateway_lock_acquire() {
     local file="${1:-$REPO_LOCK_FILE}"

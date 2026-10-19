@@ -271,24 +271,22 @@ if [[ -f "$HYP_LOG" ]]; then
 fi
 
 # --- Decompose-reminder derivation (structural-hole fix) ---
-# Budget formats seen in the wild: "5h", "2h", "3-4h" (range), "0.5h"
+# Budget formats seen in the wild: "5h", "2h", "3-4h" (range), "0.5h" / "0,5h"
 # (fractional). For a range we want the upper bound — the more conservative
 # read when deciding whether the WP is big enough to need a staged plan.
-# Numbers are matched with their decimal point: the old digit-group max read
-# "0.5h" as max(0, 5) = 5 hours and the old `sed 's/[^0-9]//g'` squashed it
-# into "05" (issue #1088). Returns TENTHS of an hour so callers stay in
-# integer arithmetic: "0.5h" → 5, "5h" → 50, "3-4h" → 40.
-budget_upper_bound_tenths() {
-  awk -v b="$1" 'BEGIN {
-    max = 0
-    s = b
-    while (match(s, /[0-9]+(\.[0-9]+)?/)) {
-      v = substr(s, RSTART, RLENGTH) + 0
-      if (v > max) max = v
-      s = substr(s, RSTART + RLENGTH)
-    }
-    printf "%.0f\n", max * 10
-  }'
+# Plain `sed 's/[^0-9]//g'` (used elsewhere in this script for a different,
+# looser purpose) would mangle "3-4h" into "34"; this instead takes the max
+# of all digit groups found. issue #1088: a plain `[0-9]+` group split "0.5h"
+# into separate "0" and "5" groups, reading it as 5h instead of 0 (rounded
+# down); matching an optional fractional part first and then truncating to
+# its whole-number prefix keeps "3-4h" and ranges like "2.5-3.5h" correct too.
+budget_upper_bound_hours() {
+  local budget="$1" n max=0
+  for n in $(grep -oE '[0-9]+([.,][0-9]+)?' <<<"$budget"); do
+    n="${n%%[.,]*}"
+    [[ "$n" -gt "$max" ]] && max="$n"
+  done
+  printf '%s\n' "$max"
 }
 
 # Шаг 4.5 protocol-open.md (/decompose): open-loop/problem-framing + budget
@@ -298,7 +296,7 @@ budget_upper_bound_tenths() {
 # nudge survives even when the console output scrolls away.
 DECOMPOSE_CHECKLIST_ITEM=""
 if [[ "$VERIFICATION_CLASS" == "open-loop" || "$VERIFICATION_CLASS" == "problem-framing" ]]; then
-  if [[ "$(budget_upper_bound_tenths "$BUDGET")" -ge 30 ]]; then
+  if [[ "$(budget_upper_bound_hours "$BUDGET")" -ge 3 ]]; then
     DECOMPOSE_CHECKLIST_ITEM="- [ ] Запустить /decompose — план по этапам (класс проверки требует)
 "
   fi
@@ -763,14 +761,26 @@ echo "3/5 WeekPlan..."
 # WEEKPLAN уже найден выше (снимок для отката, issue WP-507 про формат имени файла
 # применён там же) — здесь используется тот же путь, не ищем повторно.
 if [[ -n "$WEEKPLAN" ]]; then
-  if ! python3 - "$WEEKPLAN" "$WP_NUM" "$TITLE" "$PRIORITY" "$BUDGET" <<'PYEOF'
+  if ! python3 - "$WEEKPLAN" "$WP_NUM" "$TITLE" "$PRIORITY" "$BUDGET" "$REPO" "$STAKE_CELL" <<'PYEOF'
 import sys, re
 weekplan_path, wp_num, title, priority, budget = sys.argv[1:6]
+# Optional (issue #1152): the writer tests invoke this block with the first five only.
+repo = sys.argv[6] if len(sys.argv) > 6 else ""
+stake = sys.argv[7] if len(sys.argv) > 7 else "—"
 
 # Маппинг приоритета → светофор
 flag_map = {"P1": "🔴", "P2": "🟡", "P3": "🟢", "P4": "⚪", "P5": "⚪"}
 flag = flag_map.get(priority, "⚪")
-h_val = re.sub(r"[^0-9\-]", "", budget) or "?"
+# issue #1088: `re.sub(r"[^0-9\-]", "", budget)` dropped the decimal
+# separator along with the "h" suffix, turning "0.5h" into "05" (read as
+# five hours at a glance, not half an hour). Find the number(s) anywhere in
+# the string instead of anchoring to its start -- a start-anchored version
+# of this fix (cold review, Fable) returned "?" for "~2h" or a leading-space
+# budget, and disagreed with the bash threshold parser on "2h-3h". Take the
+# first two numbers found, normalizing a locale comma to a dot; "h" is still
+# dropped, same as the old regex did for "3-4h" -> "3-4".
+_nums = re.findall(r"\d+(?:[.,]\d+)?", budget)
+h_val = "-".join(n.replace(",", ".") for n in _nums[:2]) or "?"
 
 with open(weekplan_path, "r", encoding="utf-8") as f:
     lines = f.readlines()
@@ -1130,6 +1140,7 @@ if insert_at is None:
         print("   ⚠️  WeekPlan: таблица недели (заголовок РП/Статус вне блоков «Итоги») не найдена — добавить вручную", file=sys.stderr)
 else:
     header_cols = table_cells(header_line)
+    header_keys = [column_key(c) for c in header_cols]
     values_by_name = {
         "🚦": flag,
         "#": wp_num,
@@ -1140,6 +1151,15 @@ else:
         "Статус": "pending",
         "Результат": "[заполнить]",
     }
+    # issue #1152 / #1170: a layout `🚦 | РП | Работа | Часы (потолок) | Источник | Ставка |
+    # Статус | Репо` keeps the NUMBER in «РП» and the title in «Работа»; there is no «#»
+    # column. Without this the title landed in «РП» and the other columns stayed empty.
+    if "#" not in header_keys and "Работа" in header_keys:
+        values_by_name["РП"] = "WP-{}".format(wp_num)
+        values_by_name["Работа"] = "**{}** — [описание]".format(title)
+        values_by_name["Часы (потолок)"] = h_val
+        values_by_name["Ставка"] = stake
+        values_by_name["Репо"] = repo if repo else "—"
     row_cells = ["—"] * len(header_cols)
     for idx, name in enumerate(header_cols):
         key = column_key(name)  # the same normalization the header detection used
@@ -1165,8 +1185,12 @@ fi
 # --- Шаг 4: Strategy.md (только если --result задан и бюджет ≥3h) ---
 echo "4/5 Strategy.md..."
 
-BUDGET_TENTHS=$(budget_upper_bound_tenths "$BUDGET")
-if [[ -n "$RESULT" && "${BUDGET_TENTHS:-0}" -ge 30 ]]; then
+# issue #1088: this used to be its own `sed 's/[^0-9]//g'`, which read a
+# fractional budget like "0.5h" as "05" (five hours) -- the same bug as
+# budget_upper_bound_hours() above, duplicated with a different regex.
+# Reuse that function instead of a second copy of the same threshold logic.
+BUDGET_H=$(budget_upper_bound_hours "$BUDGET")
+if [[ -n "$RESULT" && "${BUDGET_H:-0}" -ge 3 ]]; then
   STRATEGY_FILE="$STRATEGY/docs/Strategy.md"
   python3 - "$STRATEGY_FILE" "$WP_ID" "$REPO" "$RESULT" <<'PYEOF'
 import re
@@ -1214,7 +1238,7 @@ with open(strategy_path, "w", encoding="utf-8") as f:
     f.write(content)
 print("   ✅ Strategy.md: WP-{} → {} добавлен".format(wp_id, result))
 PYEOF
-elif [[ "${BUDGET_TENTHS:-0}" -ge 30 ]]; then
+elif [[ "${BUDGET_H:-0}" -ge 3 ]]; then
   echo "   ℹ️  РП ≥3h, но --result не задан — добавить маппинг в Strategy.md вручную"
 else
   echo "   ℹ️  РП <3h — маппинг в Strategy.md не требуется"

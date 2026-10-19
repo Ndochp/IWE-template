@@ -42,7 +42,7 @@
 
 **Проверка (в начале алгоритма, до шага 1).** `date +%A` — локале-зависимо (под `ru_RU.UTF-8` вернёт «четверг», не «thursday», и сравнение с англоязычным именем из конфига никогда не совпадёт — тот же баг однажды уже был найден и исправлен в `day-open-scaffold.sh`, здесь используется тот же паттерн: числовой день недели `date +%u` (1=Пн…7=Вс, локале-независимо) + карта имя→число):
 ```bash
-T="${IWE_TEMPLATE:-$IWE_WORKSPACE/FMT-exocortex-template}"
+T="${IWE_TEMPLATE:-$HOME/IWE/FMT-exocortex-template}"
 # issue #541 hvost 3 (Evgenii, cold-review 26.08): бывший голый `python3 -c` со
 # сглатыванием stderr тихо возвращал "monday", даже если реальный
 # day-rhythm-config.yaml называет другой день — на хосте без PyYAML это была
@@ -79,9 +79,9 @@ fi
 ## Шаг 1: Сбор данных
 
 ```bash
-for repo in $(ls $IWE_WORKSPACE/); do
-  if [ -d $IWE_WORKSPACE/$repo/.git ]; then
-    commits=$(git -C $IWE_WORKSPACE/$repo log --since="today 00:00" --oneline --no-merges 2>/dev/null \
+for repo in $(ls ${IWE_WORKSPACE:-$HOME/IWE}/); do
+  if [ -d ${IWE_WORKSPACE:-$HOME/IWE}/$repo/.git ]; then
+    commits=$(git -C ${IWE_WORKSPACE:-$HOME/IWE}/$repo log --since="today 00:00" --oneline --no-merges 2>/dev/null \
       | grep -vE "^(docs|chore|ci|style|perf|test)(\\(|:| )" \
       | grep -vE "memory/|\.claude/rules/|template-sync|backup|reindex" \
       || true)
@@ -128,7 +128,7 @@ grep -nE "→ ждёт|ждёт|dep:|блокер|blocked:|остановлен|
 > Правило: индекс = только hook-строка + ссылка на source-of-truth, не дамп контента (см. алгоритм ниже).
 
 ```bash
-T="${IWE_TEMPLATE:-$IWE_WORKSPACE/FMT-exocortex-template}"
+T="${IWE_TEMPLATE:-$HOME/IWE/FMT-exocortex-template}"
 PY3="$(bash "$T/.claude/lib/find-python3.sh")" && "$PY3" "$T/.claude/scripts/check-index-health.py"
 ```
 
@@ -147,7 +147,7 @@ PY3="$(bash "$T/.claude/lib/find-python3.sh")" && "$PY3" "$T/.claude/scripts/che
 
 1. **WakaTime** — физическое время за день:
    - **Дата закрытия ≠ календарная дата вызова** (например, `/day-close` вызван после полуночи для вчерашнего дня) → `--today` НЕ пробовать вообще, сразу Neon-fallback с явной датой в SQL (issue #732: `--today` у `wakatime-cli` возвращает данные за день ВЫЗОВА, не за закрываемый день, и при последней проверке 15.07 флага «дать данные за конкретную дату» у CLI не было — тот же класс бага, что уже чинили для Day Open, WP-299 Ф4 п.3).
-   - Дата закрытия = календарная дата вызова → CLI: `~/.wakatime/wakatime-cli --today`
+   - Дата закрытия = календарная дата вызова → CLI: `~/.wakatime/wakatime-cli --today` (на Windows программа называется `wakatime-cli-windows-amd64.exe`: искать по маске `~/.wakatime/wakatime-cli*`)
    - Fallback Neon: `SELECT payload->>'human_readable', payload->>'total_seconds' FROM learning.public.domain_event WHERE event_type='coding_time' AND account_id='{DT_USER_ID}' AND external_id='wakatime:{DT_USER_ID}:{YYYY-MM-DD}'`
    - Если Neon тоже пуст → пометить «pending Neon», пересчитать при следующей сессии
 
@@ -223,7 +223,7 @@ TODAY=$(date +%Y-%m-%d)
 # пробел ("DayPlan YYYY-MM-DD.md"), поэтому xargs получал два несуществующих
 # токена и постусловие молча падало в FAIL независимо от реального содержимого
 # файла. Прямая проверка через переменную в кавычках не расщепляет путь.
-F="$IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/archive/day-plans/DayPlan ${TODAY}.md"
+F="${IWE_WORKSPACE:-$HOME/IWE}/${IWE_GOVERNANCE_REPO:-DS-strategy}/archive/day-plans/DayPlan ${TODAY}.md"
 if grep -q "Итоги дня" "$F" 2>/dev/null && grep -q "${TODAY}" "$F" 2>/dev/null; then
   echo "9a OK"
 else
@@ -235,8 +235,8 @@ fi
 ```bash
 TODAY=$(date +%Y-%m-%d)
 DAY_NUM=$(date +%-d)
-( grep -rl "Итоги.*${DAY_NUM}" $IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/current/WeekReport\ W*.md 2>/dev/null \
-  || grep -rl "Итоги.*${DAY_NUM}" $IWE_WORKSPACE/${IWE_GOVERNANCE_REPO:-DS-strategy}/current/WeekPlan\ W*.md 2>/dev/null ) \
+( grep -rl "Итоги.*${DAY_NUM}" ${IWE_WORKSPACE:-$HOME/IWE}/${IWE_GOVERNANCE_REPO:-DS-strategy}/current/WeekReport\ W*.md 2>/dev/null \
+  || grep -rl "Итоги.*${DAY_NUM}" ${IWE_WORKSPACE:-$HOME/IWE}/${IWE_GOVERNANCE_REPO:-DS-strategy}/current/WeekPlan\ W*.md 2>/dev/null ) \
   | grep -q . && echo "9b OK" || echo "9b FAIL: итоги не найдены ни в WeekReport, ни в WeekPlan"
 ```
 

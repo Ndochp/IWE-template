@@ -118,8 +118,7 @@ python3 ~/.claude/skills/residency-gate/residency-gate.py list day-open
 
 При первом запуске ResidencyGate переносит прежний
 `<IWE workspace>/current/data-residency.yaml` (workspace берётся из
-`IWE_WORKSPACE`, затем `IWE_ROOT`/`IWE`; если ни одна не задана — ошибка «cannot
-determine workspace root», гуесса из `$HOME/IWE` больше нет) в новое место и сохраняет
+`IWE_WORKSPACE`, затем `IWE_ROOT`/`IWE`, иначе `$HOME/IWE`) в новое место и сохраняет
 точную восстановимую копию в `migration-backups/data-residency.yaml.legacy`.
 Повторный запуск идемпотентен. Если старый и новый файлы различаются или один
 из них повреждён, автоматическое объединение запрещено: гейт останавливается,

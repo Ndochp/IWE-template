@@ -26,7 +26,7 @@
 
 Включить в commit message: `feat(wp-NNN): fixup typo [no-registry-touch]`.
 
-**Аудит exemption-tag** — Week Close считает использования за 7 дней. >2/неделю → флаг для расследования (incentive обхода). См. `${IWE:-$IWE_WORKSPACE}/extensions/week-close.after.md`.
+**Аудит exemption-tag** — Week Close считает использования за 7 дней. >2/неделю → флаг для расследования (incentive обхода). См. `${IWE:-$HOME/IWE}/extensions/week-close.after.md`.
 
 **Periodic reconciliation:**
 - Day Open: `--deep-check` (orphan detection) — informational, не блокирует.

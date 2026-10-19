@@ -88,7 +88,7 @@ updated: YYYY-MM-DD
 | `inbox/agent/results/RESULT-*.md` | Создание новых result-файлов |
 | `inbox/agent/archive/YYYY/` | Move старых tasks+results |
 | `/tmp/iwe-agent-dispatcher.lock` или эквивалент | Lock-файл (50 min TTL) |
-| `$IWE_WORKSPACE/scripts/logs/iwe-agent-dispatcher-YYYY-MM-DD.log` | Журнал циклов |
+| `~/IWE/scripts/logs/iwe-agent-dispatcher-YYYY-MM-DD.log` | Журнал циклов |
 
 ---
 

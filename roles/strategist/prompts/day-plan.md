@@ -7,7 +7,7 @@
 
 ```bash
 DATE=$(date +%Y-%m-%d)
-_IWE="$IWE_WORKSPACE"
+_IWE="${IWE_WORKSPACE:-$HOME/IWE}"
 DAYPLAN_FILE="$_IWE/{{GOVERNANCE_REPO}}/current/DayPlan $DATE.md"
 
 # Если файла нет — создать через scaffold (если доступен)
@@ -88,7 +88,7 @@ fi
 ### Шаг 7 — сохранение и коммит
 
 ```bash
-REPO_DIR="$IWE_WORKSPACE/{{GOVERNANCE_REPO}}"
+REPO_DIR="${IWE_WORKSPACE:-$HOME/IWE}/{{GOVERNANCE_REPO}}"
 git -C "$REPO_DIR" add current/DayPlan*.md
 git -C "$REPO_DIR" commit -m "day-plan: $DATE автономный полный (strategist morning)"
 git -C "$REPO_DIR" pull --rebase  # на случай если Mac тоже что-то закоммитил
@@ -100,7 +100,7 @@ git -C "$REPO_DIR" push
 - ❌ **НЕ задавать вопросов** «что от меня нужно?» / «вариант A/B/C?»
 - ❌ **НЕ останавливаться** если файл DayPlan уже существует — заполни PENDING секции (не пересоздавай)
 - ❌ **НЕ просить подтверждения** — все решения по алгоритму
-- ✅ Все решения принимай по skill /day-open (`$IWE_WORKSPACE/.claude/skills/day-open/SKILL.md`)
+- ✅ Все решения принимай по skill /day-open (`${IWE_WORKSPACE:-{{WORKSPACE_DIR}}}/.claude/skills/day-open/SKILL.md`)
 - ✅ Финал: SUCCESS + git push (Telegram-уведомление отправляет strategist.sh автоматически после завершения)
 
 ## Источники

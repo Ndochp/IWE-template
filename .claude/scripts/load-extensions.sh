@@ -1,11 +1,5 @@
 #!/bin/bash
 # load-extensions.sh — unified loader для suffix extensions (R4.4 fix, WP-273 Этап 2).
-# LOCAL-PATCH 2026-10-04 (пилот одобрил): на этой установке workspace extensions/
-# — СИМЛИНК на IWE-template/extensions/: MSYS-find на аргумент-симлинк без
-# хвостового слеша смотрит как на лист и молча возвращает пусто, из-за чего лоадер
-# рапортовал «нет расширений» при существующих файлах (находка Day Open 03.10).
-# Фикс — find "$EXT_DIR/" (слеш заставляет find зайти в симлинк); плюс защитная
-# нормализация Windows-пути IWE_ROOT в POSIX. При обновлении шаблона — сверять.
 #
 # Раньше каждый skill/loader читал точное имя файла (`extensions/day-close.after.md`,
 # `extensions/protocol-close.checks.md`). Документация (extensions/README.md) обещает
@@ -49,19 +43,6 @@ case "$HOOK" in
         ;;
 esac
 
-# LOCAL-PATCH (защита): дисковый путь (X:/...) переводится в POSIX (/x/...)
-# через cygpath (в Git Bash есть всегда); на Linux/macOS путь уже POSIX —
-# ветка case не срабатывает, функция — no-op.
-normalize_posix_path() {
-    local p="$1"
-    case "$p" in
-        [A-Za-z]:[\\/]*)
-            command -v cygpath >/dev/null 2>&1 && p="$(cygpath -u "$p")"
-            ;;
-    esac
-    printf '%s' "$p"
-}
-
 # Resolve workspace — пробуем несколько переменных, проверяя существование директории.
 # Фикс bug-2026-05-14: ранее IWE_WORKSPACE мог указывать на несуществующую tmp-директорию
 # (остаток smoke-test), и fallback не срабатывал из-за лишнего dirname.
@@ -95,10 +76,6 @@ if ! WORKSPACE="$(resolve_workspace)"; then
     exit 3
 fi
 
-# LOCAL-PATCH (защита): нормализуем Windows-форму (IWE_ROOT=D:/...) в POSIX
-# для консистентности с MSYS-утилитами ниже.
-WORKSPACE="$(normalize_posix_path "$WORKSPACE")"
-
 EXT_DIR="$WORKSPACE/extensions"
 if [ ! -d "$EXT_DIR" ] || [ ! -r "$EXT_DIR" ] || [ ! -x "$EXT_DIR" ]; then
     echo "[extension_loader_error] extensions directory is unavailable: $EXT_DIR" >&2
@@ -110,10 +87,8 @@ fi
 #   day-close.after.md
 #   day-close.after.health.md
 #   day-close.after.linear.md
-# LOCAL-PATCH: хвостовой слеш обязателен — extensions/ здесь симлинк, find без
-# слеша считает аргумент листом и молча возвращает пусто (см. шапку файла).
 if ! FOUND="$(
-    find "$EXT_DIR/" -mindepth 1 -maxdepth 1 \
+    find -L "$EXT_DIR" -mindepth 1 -maxdepth 1 \
         \( -name "${PROTOCOL}.${HOOK}.md" \
         -o -name "${PROTOCOL}.${HOOK}.*.md" \) \
         -print | LC_ALL=C sort

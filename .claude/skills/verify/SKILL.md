@@ -144,7 +144,7 @@ bash .claude/scripts/load-extensions.sh verify before
 > Двухэтапная проверка: 🔴 машинная (оркестратор) → 🟡 семантическая (sub-agent). 🟢 пилот не делается агентом.
 
 **Переменные окружения:**
-- `IWE_ROOT` — корень рабочей директории (default: `$IWE_WORKSPACE`). Используется для путей к Pack и `DS-principles-curriculum`.
+- `IWE_ROOT` — корень рабочей директории (default: `${IWE_WORKSPACE:-$HOME/IWE}`). Используется для путей к Pack и `DS-principles-curriculum`.
 
 **Hotfix-исключение:** если последний коммит содержит `[hotfix]` в message — запускается только 🔴, без 🟡 (см. CHECKLIST-subsection-v1.md §«Правило»).
 
@@ -152,7 +152,7 @@ bash .claude/scripts/load-extensions.sh verify before
 
 - **Этап 🔴 (оркестратор, локально):**
   ```bash
-  IWE_ROOT="${IWE_ROOT:-$IWE_WORKSPACE}"
+  IWE_ROOT="${IWE_ROOT:-$HOME/IWE}"
   (cd "$IWE_ROOT/DS-principles-curriculum"
   PACK_FORM_089="$IWE_ROOT/PACK-personal/pack/personal-development/02-domain-entities/formalizations/PD.FORM.089-learner-rcs.md"
   # 1. Структура (A.1-A.11) + контракт Портного (B.1-B.9)
@@ -207,7 +207,7 @@ bash .claude/scripts/load-extensions.sh verify before
 
 - **Этап 🔴 (оркестратор):**
   ```bash
-  IWE_ROOT="${IWE_ROOT:-$IWE_WORKSPACE}"
+  IWE_ROOT="${IWE_ROOT:-$HOME/IWE}"
   (cd "$IWE_ROOT/DS-principles-curriculum"
   # 1. Структурная полнота раздела (A.1-A.4, B.1-B.3, C.1-C.2)
   python3 tools/v4-lint.py section --id <section-id> specs/v4-reference/
@@ -242,7 +242,7 @@ bash .claude/scripts/load-extensions.sh verify before
 
 - **Этап 🔴 (оркестратор):**
   ```bash
-  IWE_ROOT="${IWE_ROOT:-$IWE_WORKSPACE}"
+  IWE_ROOT="${IWE_ROOT:-$HOME/IWE}"
   (cd "$IWE_ROOT/DS-principles-curriculum"
   PACK_FORM_089="$IWE_ROOT/PACK-personal/pack/personal-development/02-domain-entities/formalizations/PD.FORM.089-learner-rcs.md"
   GUIDE_ID="<guide-id>"   # PD.GUIDE.<N> или N (1-4)
