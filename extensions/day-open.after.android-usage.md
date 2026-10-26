@@ -2,14 +2,16 @@
 
 > **Hook:** `day-open` / `after` (шаг 4.8 графа расширений, WP-529 Ф11).
 > **Запрос пилота 16.10:** дамп UsageStats с Android-телефона снимается каждое
-> открытие дня. Если телефон не подключен — **пауза с просьбой подключить**
-> (Telegram) и досъём после подключения; решение пилота «пауза», не пропуск.
+> открытие дня.
+> **Решение пилота 26.10:** окно паузы отключено (опыт: подключение в паузу
+> всё равно не докачивает). При отсутствии телефона — сразу пропуск с
+> предупреждением (в stdout и DayPlan, «Требует внимания»); пилот подключает
+> телефон сам и даёт команду забрать данные
+> (`bash DS-strategy/scripts/android-usage-pull.sh`).
 > **Политика отказов:** хук никогда не блокирует открытие дня — любой исход
-> (нет adb, таймаут паузы, сбой дампа) даёт `exit 0`; пропуск помечается файлом
+> (нет adb, телефон не подключён, сбой дампа) даёт `exit 0`; пропуск помечается файлом
 > `.pending-<дата>`, по нему напоминание срабатывает на закрытии дня
 > (`day-close.after.android-usage.md`).
-> **Окно паузы:** 10 минут по умолчанию, опрос каждые 15 с; меняется переменной
-> `ANDROID_USAGE_WAIT_MIN` (0 — без паузы, сразу пропуск с пометкой).
 > **Сырьё:** `DS-strategy/data/android-usage/` (gitignore, по конвенции telegram-raw).
 
 ```bash
@@ -43,26 +45,7 @@ android_usage_devcount() {
     "$HOOK_ADB" devices 2>/dev/null | awk 'NR>1 && $2=="device"' | wc -l | tr -d ' '
 }
 if [ "$(android_usage_devcount)" = "0" ]; then
-    HOOK_WAIT="${ANDROID_USAGE_WAIT_MIN:-10}"
-    echo "[android-usage] 📱 телефон не подключен — пауза ${HOOK_WAIT} мин с просьбой (Telegram)"
-    HOOK_TG_LIB="$HOOK_DS/scripts/lib/telegram.sh"
-    if [ -f "$HOOK_TG_LIB" ]; then
-        # shellcheck disable=SC1090
-        . "$HOOK_TG_LIB" 2>/dev/null || true
-        telegram_load_creds 2>/dev/null \
-            && telegram_send "📱 Открытие дня: подключи телефон для дампа цифрового благополучия. Жду ${HOOK_WAIT} мин; не подключишь — дамп пропущу, напомню при закрытии дня." 2>/dev/null \
-            || echo "[android-usage] просьба в Telegram не отправлена (нет кредов/сети)"
-    fi
-    HOOK_TICKS=$((HOOK_WAIT * 4))
-    HOOK_I=0
-    while [ "$HOOK_I" -lt "$HOOK_TICKS" ]; do
-        sleep 15
-        HOOK_I=$((HOOK_I + 1))
-        [ "$(android_usage_devcount)" != "0" ] && break
-    done
-fi
-if [ "$(android_usage_devcount)" = "0" ]; then
-    echo "[android-usage] ⏳ телефон не подключён за окно паузы — дамп пропущен, напоминание на закрытии дня"
+    echo "[android-usage] 📱 телефон не подключён — дамп пропущен (окно паузы отключено, решение пилота 26.10); подключите и дайте команду забрать: bash ${HOOK_DS}/scripts/android-usage-pull.sh — напоминание на закрытии дня"
     echo "$HOOK_TODAY" > "$HOOK_DATA/.pending-$HOOK_TODAY"
     exit 0
 fi
