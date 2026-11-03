@@ -44,7 +44,7 @@ description: "Операционный файл памяти IWE"
 - **TTL:** 40 минут (2400с) от mtime (issue #460 путь 3, было 10 мин — измеренный `close day` занимает ~26 мин, старый TTL истекал посреди легитимной репетиции). Файл с mtime старше TTL — **fail-CLOSED**: хук блокирует и оставляет sentinel на месте для ручного разбора, больше не удаляет его сам (раньше `rm -f` + allow — тот же класс fail-open, что путь 1/2).
 - **Очистка:** (а) явная — финал шага в `/audit-installation`; (б) TTL-expiry требует ручного `rm -f`, автоматической очистки больше нет. Stop владельца (даже при совпадении `session_id` и capability-token) **больше не удаляет sentinel** (issue #460 путь 6 — тот же `session_id` у родителя и его фонового субагента, поэтому Stop родительского хода мог снести защиту, пока субагент ещё пишет); Stop только подчищает residue-owner-файл текущей сессии, и только когда sentinel уже отсутствует. Чужой Stop по-прежнему не снимает защиту (issue #460 путь 7, регрессия покрыта тестом).
 
-### Жизненный цикл
+### Состояния и переходы
 
 ```
 [start]  /audit-installation шаг smoke-test
@@ -179,7 +179,7 @@ Day Close (см. код: только `git log`/`grep`/`ls`/`wc`/`python3 <scrip
 
 ```
 . "$HOME/.iwe-paths"
-. "${IWE_PATHS_FILE:-$HOME/.iwe-paths}"
+IWE_PATHS="${IWE_PATHS_FILE:-}"; if [ -z "$IWE_PATHS" ]; then for _c in "$PWD/.iwe-paths" "${IWE_WORKSPACE:-$HOME/IWE}/.iwe-paths" "$HOME/.iwe-paths"; do [ -r "$_c" ] && { IWE_PATHS="$_c"; break; }; done; fi; [ -n "$IWE_PATHS" ] && . "$IWE_PATHS"
 ```
 
 (и те же формы через `source` вместо `.`). Файл `.iwe-paths` — read-only

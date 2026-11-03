@@ -7,8 +7,11 @@ Exit codes:
   0 — keyword match, JSON on stdout (schema_version 3, WP-575 Ф2)
   1 — INSUFFICIENT_INPUT (< 5 words)
   2 — NO_KEYWORD_MATCH (needs LLM fallback)
-  3 — CONFIG_ERROR (result-kinds-registry.yaml в PACK-digital-platform
-      не читается/повреждён — fail-closed, не тихий откат к schema 1)
+  3 — CONFIG_ERROR (PACK-digital-platform установлен, но result-kinds-registry.yaml
+      в нём не читается/пуст/повреждён — fail-closed, не тихий откат к schema 1.
+      Если PACK-digital-platform целиком не установлен — issue #1231, штатно для
+      обычной установки шаблона — это не CONFIG_ERROR, а result_kind_resolution:
+      "unresolved" с expected_result_kind: None)
 
 expected_result_kind (WP-481 Ф7, консенсус пир-сессии
 2026-08-05-14-codex-wp481-f7-impl): дискриминатор ожидаемого kind-а результата
@@ -48,44 +51,60 @@ import sys
 import json
 import re
 
-# Реестр — сиблинг-репозиторий PACK-digital-platform (см. тот же паттерн
-# резолва в DS-strategy/scripts/check-result-kind.py). IWE_ROOT: явный env
-# override, иначе родитель этого файла на два уровня выше scripts/
-# (штатная раскладка {{WORKSPACE_DIR}}/scripts/artifactor.py рядом с {{WORKSPACE_DIR}}/PACK-digital-platform).
+# The registry is a sibling repository PACK-digital-platform (see the same resolution
+# pattern in DS-strategy/scripts/check-result-kind.py). IWE_ROOT: explicit env
+# override, otherwise the parent of this file two levels above scripts/
+# (standard layout {{WORKSPACE_DIR}}/scripts/artifactor.py next to {{WORKSPACE_DIR}}/PACK-digital-platform).
+PACK_ROOT_REL = "PACK-digital-platform"
 PACK_REGISTRY_REL = os.path.join(
-    "PACK-digital-platform", "pack", "digital-platform", "result-kinds-registry.yaml"
+    PACK_ROOT_REL, "pack", "digital-platform", "result-kinds-registry.yaml"
 )
 KIND_ID_LINE_RE = re.compile(r"^\s+-\s+kind_id:\s*(\S+)\s*$")
 
 
+class RegistryPackMissing(Exception):
+    """PACK-digital-platform сам не установлен — issue #1231: авторский Pack не
+    входит в шаблон, значит это штатное состояние обычной установки, не порча."""
+
+
+def resolve_iwe_root():
+    return os.environ.get("IWE_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def resolve_registry_path():
-    iwe_root = os.environ.get("IWE_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(iwe_root, PACK_REGISTRY_REL)
+    return os.path.join(resolve_iwe_root(), PACK_REGISTRY_REL)
 
 
 def load_registry_kind_ids():
     """Line-based, stdlib-only извлечение множества kind_id (без gate_ready —
     это забота /verify, не классификатора). Возвращает set() или None при
-    отсутствии/ошибке чтения файла (вызывающий код решает, CONFIG_ERROR это
-    или нет)."""
+    ошибке чтения/порче файла (вызывающий код решает, CONFIG_ERROR это или
+    нет). Поднимает RegistryPackMissing, если PACK-digital-platform целиком
+    не установлен — это отдельный от порчи случай (issue #1231): Pack
+    авторский и в шаблон не входит, у обычного пользователя его нет."""
     path = resolve_registry_path()
     try:
         with open(path, encoding="utf-8") as f:
             lines = f.readlines()
+    except FileNotFoundError:
+        pack_root = os.path.join(resolve_iwe_root(), PACK_ROOT_REL)
+        if not os.path.isdir(pack_root):
+            raise RegistryPackMissing(pack_root) from None
+        return None  # Pack is installed but the registry file is missing from it -- corruption, CONFIG_ERROR
     except OSError:
         return None
     ids = {m.group(1) for line in lines if (m := KIND_ID_LINE_RE.match(line))}
     return ids or None
 
-# Третий элемент — expected kind_id (WP-481 Ф7), четвёртый — название
-# артефакта, пятый — result_type (WP-575 Ф2: "system" | "episteme" |
-# "unresolved", см. докстринг модуля). Все значения живут в одной карте:
-# отдельные параллельные словари незаметно разошлись бы с маршрутизацией.
-# None/"unresolved" + запись в SPECIAL_RESOLUTION — для осознанных исключений
-# (peer_session, spec_writing, и записи с неоднозначным result_type), не
-# «забыли заполнить».
+# The third element is the expected kind_id (WP-481 Phase 7), the fourth is the
+# artifact name, the fifth is result_type (WP-575 Phase 2: "system" | "episteme" |
+# "unresolved", see the module docstring). All values live in one map:
+# separate parallel dictionaries would silently drift from the routing.
+# None/"unresolved" + an entry in SPECIAL_RESOLUTION are for deliberate exceptions
+# (peer_session, spec_writing, and entries with an ambiguous result_type), not
+# "forgot to fill in".
 KEYWORD_MAP = {
-    # trivial — WorkDone: детерминированный трейс завершённого протокола
+    # trivial -- WorkDone: a deterministic trace of a completed protocol
     "day-open": ("day_open", "trivial", "WorkDone", "План дня", "episteme"),
     "day open": ("day_open", "trivial", "WorkDone", "План дня", "episteme"),
     "открывай день": ("day_open", "trivial", "WorkDone", "План дня", "episteme"),
@@ -100,16 +119,16 @@ KEYWORD_MAP = {
     "ошибк бота": ("bot_fix", "closed-loop", "WorkDone", "Бот", "system"),     # matches «ошибка» and «ошибки»
     "фиксы": ("bug_fix", "closed-loop", "WorkDone", "Патч кода", "system"),
     "устранить": ("bug_fix", "closed-loop", "WorkDone", "Патч кода", "system"),
-    "доделать рп": ("wp_finish", "closed-loop", "WorkDone", "Файлы фазы РП", "unresolved"),  # результат зависит от конкретного РП — код или документ
+    "доделать рп": ("wp_finish", "closed-loop", "WorkDone", "Файлы фазы РП", "unresolved"),  # the result depends on the specific WP -- code or a document
     "хвосты рп": ("wp_finish", "closed-loop", "WorkDone", "Файлы фазы РП", "unresolved"),
     "закрыть рп": ("wp_close", "closed-loop", "WorkDone", "Отчёт о закрытии РП", "unresolved"),
     "передать андрею": ("wp_close", "closed-loop", "WorkDone", "Файлы РП", "unresolved"),
     "актуализация wp": ("wp_actualize", "closed-loop", "WorkDone", "Карточка РП", "episteme"),
     "ревью рп": ("code_review", "closed-loop", "Episteme", "Отчёт ревью", "episteme"),
     "ревью работы": ("code_review", "closed-loop", "Episteme", "Отчёт ревью", "episteme"),
-    "разбор ke": ("ke_review", "closed-loop", "ChoiceResult", "Решение по кандидатам знаний", "episteme"),  # R15 accept/reject/defer, не граф claim'ов
+    "разбор ke": ("ke_review", "closed-loop", "ChoiceResult", "Решение по кандидатам знаний", "episteme"),  # R15 accept/reject/defer, not a graph of claims
     "триаж": ("wp_triage", "closed-loop", "ChoiceResult", "Решение по триажу РП", "episteme"),
-    "реализация плана": ("wp_implement", "closed-loop", "WorkDone", "Рабочие пакеты из плана", "unresolved"),  # план уже был; появляются РП, кодом или документом
+    "реализация плана": ("wp_implement", "closed-loop", "WorkDone", "Рабочие пакеты из плана", "unresolved"),  # the plan already existed; WPs appear, as code or a document
     "миграция": ("wp_implement", "closed-loop", "WorkDone", "Данные в целевом контуре", "system"),
     "создай pack": ("pack_create", "closed-loop", "Episteme", "Паспорт Pack", "episteme"),
     "новый pack": ("pack_create", "closed-loop", "Episteme", "Паспорт Pack", "episteme"),
@@ -134,11 +153,11 @@ for _kw, _entry in KEYWORD_MAP.items():
         raise AssertionError(f"KEYWORD_MAP[{_kw!r}]: invalid result_type {_entry[4]!r}")
 del _kw, _entry
 
-# task_type → почему expected_result_kind = None. Единственное легитимное
-# основание для None — одна из этих двух причин, не «забыли решить».
+# task_type → why expected_result_kind = None. The only legitimate
+# ground for None is one of these two reasons, not "forgot to decide".
 SPECIAL_RESOLUTION = {
-    "peer_session": "deferred-to-session",  # мета-триггер старта процесса, kind решается на Decision Gate внутри сессии
-    "spec_writing": "unresolved",           # ни один из 6 kind-ов не покрывает — не подменять ближайшим (анти-утечка в супертип)
+    "peer_session": "deferred-to-session",  # a meta-trigger for starting a process, the kind is decided at the Decision Gate inside the session
+    "spec_writing": "unresolved",           # none of the 6 kinds covers it -- do not substitute the nearest one (anti-leak into a supertype)
 }
 
 BUDGET_BY_CLASS = {
@@ -166,8 +185,10 @@ def classify(
 def resolve_result_kind(task_type: str, kind_id: str | None) -> tuple[str | None, str]:
     """Проверить kind_id членством в живом реестре (ловит дрейф KEYWORD_MAP
     vs реестра, не только доверяет хардкоду). Возвращает (expected_result_kind,
-    result_kind_resolution). Реестр нечитаем/пуст → CONFIG_ERROR (exit 3),
-    не тихий откат к schema 1 — тот же fail-closed принцип, что в
+    result_kind_resolution). PACK-digital-platform не установлен (issue #1231,
+    штатно для обычной установки шаблона) → result_kind_resolution: "unresolved".
+    Pack установлен, но реестр в нём нечитаем/пуст/повреждён → CONFIG_ERROR
+    (exit 3), не тихий откат к schema 1 — тот же fail-closed принцип, что в
     check-result-kind.py."""
     if kind_id is None:
         reason = SPECIAL_RESOLUTION.get(task_type)
@@ -175,7 +196,15 @@ def resolve_result_kind(task_type: str, kind_id: str | None) -> tuple[str | None
             raise AssertionError(f"KEYWORD_MAP: {task_type!r} имеет kind_id=None без записи в SPECIAL_RESOLUTION")
         return None, reason
 
-    registry_ids = load_registry_kind_ids()
+    try:
+        registry_ids = load_registry_kind_ids()
+    except RegistryPackMissing as exc:
+        print(
+            f"WARNING: PACK-digital-platform не установлен ({exc}) — "
+            "expected_result_kind не резолвится, result_kind_resolution=unresolved",
+            file=sys.stderr,
+        )
+        return None, "unresolved"
     if registry_ids is None:
         print(
             f"CONFIG_ERROR: реестр не читается по {resolve_registry_path()} "
@@ -219,8 +248,8 @@ def main() -> None:
             "result_type": result_type,
             "expected_result_kind": expected_result_kind,
             "result_kind_resolution": result_kind_resolution,
-            # Стратегическая связь не выводится из ключевых слов: Артефактор
-            # передаёт обязательный вопрос в WP Gate, а не приписывает H-NNN.
+            # The strategic link is not derived from keywords: the Artifactor
+            # passes the mandatory question to the WP Gate, and does not assign an H-NNN.
             "hypothesis_relation": "unclassified",
         }
         print(json.dumps(result, ensure_ascii=False))
