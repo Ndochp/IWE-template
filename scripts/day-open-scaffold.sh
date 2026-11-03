@@ -927,12 +927,18 @@ render_iwe_status() {
   fi
 
   # template-sync (FMT last commit)
-  if [ -d "$IWE/FMT-exocortex-template/.git" ]; then
+  # Копия апстрима может называться как форк (напр. IWE-template) — поиск по кандидатам, не по литералу
+  local fmt_dir=""
+  local fmt_cand
+  for fmt_cand in "${IWE_TEMPLATE:-}" "$IWE/FMT-exocortex-template" "$IWE/IWE-template"; do
+    [ -n "$fmt_cand" ] && [ -d "$fmt_cand/.git" ] && { fmt_dir="$fmt_cand"; break; }
+  done
+  if [ -n "$fmt_dir" ]; then
     local fmt_last
-    fmt_last=$(git -C "$IWE/FMT-exocortex-template" log -1 --format="%cr" 2>/dev/null || echo "?")
-    echo "| template-sync | 🟢 | FMT last commit: $fmt_last |"
+    fmt_last=$(git -C "$fmt_dir" log -1 --format="%cr" 2>/dev/null || echo "?")
+    echo "| template-sync | 🟢 | FMT last commit ($(basename "$fmt_dir")): $fmt_last |"
   else
-    echo "| template-sync | 🔴 | FMT не найден |"
+    echo "| template-sync | 🔴 | копия FMT не найдена (искал: FMT-exocortex-template, IWE-template) |"
   fi
 
   # Scout findings
@@ -1191,7 +1197,12 @@ INCEOF
   # issue #278: полный --check без --fast сравнивает 500+ файлов построчно —
   # заведомо не укладывается в тайм-бокс, обновление тихо теряется как "проверено".
   # --fast (issue #230) сравнивает только версию манифеста — секунда вместо минут.
-  if [ -d "$IWE/FMT-exocortex-template" ]; then
+  local upd_fmt_dir=""
+  local upd_fmt_cand
+  for upd_fmt_cand in "${IWE_TEMPLATE:-}" "$IWE/FMT-exocortex-template" "$IWE/IWE-template"; do
+    [ -n "$upd_fmt_cand" ] && [ -d "$upd_fmt_cand/.git" ] && { upd_fmt_dir="$upd_fmt_cand"; break; }
+  done
+  if [ -n "$upd_fmt_dir" ]; then
     # issue #406: три дефекта здесь раньше складывались в вечнозелёную строку —
     # (1) эмодзи был зашит 🟢 без ветвления; (2) update.sh с тех пор (issue #230/
     # #288) отдаёт 5 разных формулировок с префиксом ✓/⚠ — старый grep на
@@ -1204,7 +1215,7 @@ INCEOF
     # а не угадывается заранее.
     local upd_output upd_emoji upd_status
     upd_output=$(run_bounded "${ISSUE_SWEEP_TIMEOUT:-10}" bash -c \
-      "cd '$IWE/FMT-exocortex-template' && bash update.sh --check --fast 2>&1")
+      "cd '$upd_fmt_dir' && bash update.sh --check --fast 2>&1")
     upd_status=$(printf '%s\n' "$upd_output" | grep -E '^[✓⚠]' | head -1)
     case "$upd_status" in
         ✓*) upd_emoji="🟢" ;;
